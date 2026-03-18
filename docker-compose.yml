@@ -1,0 +1,16 @@
+services:
+  db:
+    image: postgres:16
+    container_name: evidencepack-postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: evidencepack
+      POSTGRES_USER: evidencepack
+      POSTGRES_HOST_AUTH_METHOD: trust
+    ports:
+      - "5433:5432"
+    volumes:
+      - evidencepack_pg_data:/var/lib/postgresql/data
+
+volumes:
+  evidencepack_pg_data:

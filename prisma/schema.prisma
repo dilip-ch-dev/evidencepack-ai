@@ -1,0 +1,182 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum DeploymentStatus {
+  PLANNED
+  PILOT
+  PRODUCTION
+  RETIRED
+}
+
+enum RiskCategory {
+  MINIMAL
+  LIMITED
+  HIGH
+  UNACCEPTABLE
+}
+
+enum EvidenceType {
+  FILE
+  URL
+}
+
+enum EvidenceStatus {
+  INCOMPLETE
+  COMPLETE
+}
+
+enum GapType {
+  MISSING_REQUIRED_SECTION
+  MISSING_EVIDENCE
+  STALE_EVIDENCE
+  UNANSWERED_QUESTION
+}
+
+enum GapStatus {
+  OPEN
+  RESOLVED
+}
+
+enum ExportFormat {
+  MARKDOWN
+}
+
+enum ExportStatus {
+  COMPLETED
+  FAILED
+}
+
+model User {
+  id        String      @id @default(cuid())
+  email     String      @unique
+  name      String
+  createdAt DateTime    @default(now())
+  updatedAt DateTime    @updatedAt
+  workspaces Workspace[]
+}
+
+model Workspace {
+  id        String     @id @default(cuid())
+  name      String
+  ownerId   String
+  createdAt DateTime   @default(now())
+  updatedAt DateTime   @updatedAt
+  owner     User       @relation(fields: [ownerId], references: [id], onDelete: Cascade)
+  systems   AiSystem[]
+}
+
+model AiSystem {
+  id                          String           @id @default(cuid())
+  workspaceId                 String
+  systemName                  String
+  owner                       String
+  businessPurpose             String
+  deploymentStatus            DeploymentStatus
+  geography                   String
+  modelProviderDetails        String
+  humanOversightDescription   String
+  intendedUsers               String
+  affectedStakeholders        String
+  riskCategory                RiskCategory
+  versionReleaseIdentifier    String
+  createdAt                   DateTime         @default(now())
+  updatedAt                   DateTime         @updatedAt
+  workspace                   Workspace        @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+  answers                     Answer[]
+  evidenceItems               EvidenceItem[]
+  gaps                        Gap[]
+  exportJobs                  ExportJob[]
+
+  @@map("AISystem")
+}
+
+model QuestionnaireSection {
+  id           String         @id @default(cuid())
+  sectionKey   String         @unique
+  title        String
+  description  String?
+  displayOrder Int
+  questions    Question[]
+  evidenceItems EvidenceItem[]
+  gaps          Gap[]
+}
+
+model Question {
+  id           String               @id @default(cuid())
+  sectionId    String
+  questionKey  String               @unique
+  prompt       String
+  required     Boolean              @default(true)
+  displayOrder Int
+  createdAt    DateTime             @default(now())
+  updatedAt    DateTime             @updatedAt
+  section      QuestionnaireSection @relation(fields: [sectionId], references: [id], onDelete: Cascade)
+  answers      Answer[]
+  gaps         Gap[]
+}
+
+model Answer {
+  id         String   @id @default(cuid())
+  systemId   String
+  questionId String
+  response   String
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+  system     AiSystem @relation(fields: [systemId], references: [id], onDelete: Cascade)
+  question   Question @relation(fields: [questionId], references: [id], onDelete: Cascade)
+
+  @@unique([systemId, questionId])
+}
+
+model EvidenceItem {
+  id             String               @id @default(cuid())
+  systemId       String
+  sectionId      String?
+  title          String
+  description    String
+  type           EvidenceType
+  filePath       String?
+  sourceUrl      String?
+  owner          String
+  status         EvidenceStatus
+  lastReviewedAt DateTime?
+  createdAt      DateTime             @default(now())
+  updatedAt      DateTime             @updatedAt
+  system         AiSystem             @relation(fields: [systemId], references: [id], onDelete: Cascade)
+  section        QuestionnaireSection? @relation(fields: [sectionId], references: [id], onDelete: SetNull)
+  gaps           Gap[]
+}
+
+model Gap {
+  id             String                @id @default(cuid())
+  systemId       String
+  sectionId      String?
+  questionId     String?
+  evidenceItemId String?
+  type           GapType
+  status         GapStatus             @default(OPEN)
+  message        String
+  createdAt      DateTime              @default(now())
+  updatedAt      DateTime              @updatedAt
+  system         AiSystem              @relation(fields: [systemId], references: [id], onDelete: Cascade)
+  section        QuestionnaireSection? @relation(fields: [sectionId], references: [id], onDelete: SetNull)
+  question       Question?             @relation(fields: [questionId], references: [id], onDelete: SetNull)
+  evidenceItem   EvidenceItem?         @relation(fields: [evidenceItemId], references: [id], onDelete: SetNull)
+}
+
+model ExportJob {
+  id         String       @id @default(cuid())
+  systemId   String
+  format     ExportFormat
+  status     ExportStatus
+  outputPath String?
+  createdAt  DateTime     @default(now())
+  finishedAt DateTime?
+  system     AiSystem     @relation(fields: [systemId], references: [id], onDelete: Cascade)
+}
