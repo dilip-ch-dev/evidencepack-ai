@@ -1,4 +1,4 @@
-import { DeploymentStatus, RiskCategory } from "@prisma/client";
+import { DeploymentStatus, RiskCategory } from "@/lib/db-enums";
 import Link from "next/link";
 import { prisma } from "@/lib/prisma";
 import { getOrCreatePrimaryWorkspace } from "@/lib/workspace";

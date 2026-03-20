@@ -3,53 +3,8 @@ generator client {
 }
 
 datasource db {
-  provider = "postgresql"
+  provider = "sqlite"
   url      = env("DATABASE_URL")
-}
-
-enum DeploymentStatus {
-  PLANNED
-  PILOT
-  PRODUCTION
-  RETIRED
-}
-
-enum RiskCategory {
-  MINIMAL
-  LIMITED
-  HIGH
-  UNACCEPTABLE
-}
-
-enum EvidenceType {
-  FILE
-  URL
-}
-
-enum EvidenceStatus {
-  INCOMPLETE
-  COMPLETE
-}
-
-enum GapType {
-  MISSING_REQUIRED_SECTION
-  MISSING_EVIDENCE
-  STALE_EVIDENCE
-  UNANSWERED_QUESTION
-}
-
-enum GapStatus {
-  OPEN
-  RESOLVED
-}
-
-enum ExportFormat {
-  MARKDOWN
-}
-
-enum ExportStatus {
-  COMPLETED
-  FAILED
 }
 
 model User {
@@ -72,22 +27,22 @@ model Workspace {
 }
 
 model AiSystem {
-  id                          String           @id @default(cuid())
+  id                          String   @id @default(cuid())
   workspaceId                 String
   systemName                  String
   owner                       String
   businessPurpose             String
-  deploymentStatus            DeploymentStatus
+  deploymentStatus            String
   geography                   String
   modelProviderDetails        String
   humanOversightDescription   String
   intendedUsers               String
   affectedStakeholders        String
-  riskCategory                RiskCategory
+  riskCategory                String
   versionReleaseIdentifier    String
-  createdAt                   DateTime         @default(now())
-  updatedAt                   DateTime         @updatedAt
-  workspace                   Workspace        @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+  createdAt                   DateTime @default(now())
+  updatedAt                   DateTime @updatedAt
+  workspace                   Workspace @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
   answers                     Answer[]
   evidenceItems               EvidenceItem[]
   gaps                        Gap[]
@@ -140,11 +95,11 @@ model EvidenceItem {
   sectionId      String?
   title          String
   description    String
-  type           EvidenceType
+  type           String
   filePath       String?
   sourceUrl      String?
   owner          String
-  status         EvidenceStatus
+  status         String
   lastReviewedAt DateTime?
   createdAt      DateTime             @default(now())
   updatedAt      DateTime             @updatedAt
@@ -159,8 +114,8 @@ model Gap {
   sectionId      String?
   questionId     String?
   evidenceItemId String?
-  type           GapType
-  status         GapStatus             @default(OPEN)
+  type           String
+  status         String                @default("OPEN")
   message        String
   createdAt      DateTime              @default(now())
   updatedAt      DateTime              @updatedAt
@@ -173,8 +128,8 @@ model Gap {
 model ExportJob {
   id         String       @id @default(cuid())
   systemId   String
-  format     ExportFormat
-  status     ExportStatus
+  format     String
+  status     String
   outputPath String?
   createdAt  DateTime     @default(now())
   finishedAt DateTime?

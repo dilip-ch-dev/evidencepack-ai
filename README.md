@@ -5,17 +5,17 @@ MVP scaffold for generating and maintaining audit-ready evidence packs for AI sy
 ## Stack
 - Next.js + TypeScript
 - Prisma ORM
-- PostgreSQL
+- SQLite (local development; `docker-compose.yml` is optional if you want PostgreSQL)
 
 ## Local setup
-1. Start PostgreSQL:
-   - `docker compose up -d db`
-2. Create local environment file:
+1. Create local environment file:
    - `Copy-Item .env.example .env` (PowerShell)
-3. Install dependencies:
+2. Install dependencies:
    - `npm install`
-4. Run the app (migrations + seed + dev server):
+3. Run the app (migrations + seed + dev server):
    - `npm run dev`
+
+The SQLite database file is created at `prisma/dev.db` (path from `DATABASE_URL` in `.env`).
 
 App URL: `http://localhost:3000`
 

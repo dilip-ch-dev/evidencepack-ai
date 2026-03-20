@@ -1,3 +1,4 @@
+# Optional: PostgreSQL for production-like testing. Local dev uses SQLite (see README).
 services:
   db:
     image: postgres:16

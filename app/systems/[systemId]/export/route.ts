@@ -1,4 +1,4 @@
-import { ExportFormat, ExportStatus } from "@prisma/client";
+import { ExportFormat, ExportStatus } from "@/lib/db-enums";
 import { NextResponse } from "next/server";
 import { buildMarkdownPack } from "@/lib/export-pack";
 import { recomputeGaps } from "@/lib/gaps";

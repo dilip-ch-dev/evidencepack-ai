@@ -1,5 +1,10 @@
-import { DeploymentStatus, EvidenceStatus, EvidenceType, RiskCategory } from "@prisma/client";
 import { z } from "zod";
+import {
+  DeploymentStatus,
+  EvidenceStatus,
+  EvidenceType,
+  RiskCategory
+} from "@/lib/db-enums";
 
 const requiredText = z.string().trim().min(1, "Required");
 

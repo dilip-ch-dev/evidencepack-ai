@@ -1,4 +1,4 @@
-import { GapType } from "@prisma/client";
+import { GapType } from "@/lib/db-enums";
 import { prisma } from "@/lib/prisma";
 
 const STALE_DAYS = 90;

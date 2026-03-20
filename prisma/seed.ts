@@ -1,4 +1,10 @@
-import { PrismaClient, DeploymentStatus, EvidenceStatus, EvidenceType, RiskCategory } from "@prisma/client";
+import { PrismaClient } from "@prisma/client";
+import {
+  DeploymentStatus,
+  EvidenceStatus,
+  EvidenceType,
+  RiskCategory
+} from "../lib/db-enums";
 
 const prisma = new PrismaClient();
 const SAMPLE = "[SAMPLE DATA]";

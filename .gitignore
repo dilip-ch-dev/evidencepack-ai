@@ -5,6 +5,8 @@ node_modules
 dist
 coverage
 .prisma
+prisma/dev.db
+prisma/dev.db-journal
 public/uploads/*
 !public/uploads/.gitkeep
 *.tsbuildinfo

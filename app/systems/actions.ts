@@ -2,7 +2,7 @@
 
 import { mkdir, writeFile } from "fs/promises";
 import path from "path";
-import { EvidenceType } from "@prisma/client";
+import { EvidenceType } from "@/lib/db-enums";
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { recomputeGaps } from "@/lib/gaps";
