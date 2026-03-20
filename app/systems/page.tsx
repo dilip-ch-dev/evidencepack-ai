@@ -2,7 +2,7 @@ import { DeploymentStatus, RiskCategory } from "@/lib/db-enums";
 import Link from "next/link";
 import { prisma } from "@/lib/prisma";
 import { getOrCreatePrimaryWorkspace } from "@/lib/workspace";
-import { createSystemAction } from "./actions";
+import { CreateSystemForm } from "./create-system-form";
 
 export const dynamic = "force-dynamic";
 
@@ -54,70 +54,12 @@ export default async function SystemsPage() {
 
       <section className="panel">
         <h2>Create AI System</h2>
-        <form action={createSystemAction} className="form-grid">
-          <label>
-            System Name
-            <input name="systemName" required />
-          </label>
-          <label>
-            Owner
-            <input name="owner" required />
-          </label>
-          <label>
-            Deployment Status
-            <select name="deploymentStatus" defaultValue={DeploymentStatus.PLANNED}>
-              {deploymentOptions.map((status) => (
-                <option key={status} value={status}>
-                  {status}
-                </option>
-              ))}
-            </select>
-          </label>
-          <label>
-            Geography
-            <input name="geography" required />
-          </label>
-          <label>
-            Risk Category
-            <select name="riskCategory" defaultValue={RiskCategory.LIMITED}>
-              {riskOptions.map((risk) => (
-                <option key={risk} value={risk}>
-                  {risk}
-                </option>
-              ))}
-            </select>
-          </label>
-          <label>
-            Version / Release Identifier
-            <input name="versionReleaseIdentifier" required />
-          </label>
-          <label className="span-2">
-            Business Purpose
-            <textarea name="businessPurpose" required rows={3} />
-          </label>
-          <label className="span-2">
-            Model / Provider Details
-            <textarea name="modelProviderDetails" required rows={3} />
-          </label>
-          <label className="span-2">
-            Human Oversight Description
-            <textarea name="humanOversightDescription" required rows={3} />
-          </label>
-          <label className="span-2">
-            Intended Users
-            <textarea name="intendedUsers" required rows={2} />
-          </label>
-          <label className="span-2">
-            Affected Stakeholders
-            <textarea name="affectedStakeholders" required rows={2} />
-          </label>
-
-          <div className="span-2 form-actions">
-            <button type="submit" className="button">
-              Create System
-            </button>
-          </div>
-        </form>
+        <CreateSystemForm
+          deploymentOptions={deploymentOptions}
+          defaultDeploymentStatus={DeploymentStatus.PLANNED}
+          riskOptions={riskOptions}
+          defaultRiskCategory={RiskCategory.LIMITED}
+        />
       </section>
     </main>
   );

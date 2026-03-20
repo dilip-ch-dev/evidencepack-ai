@@ -2,7 +2,8 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { recomputeGaps } from "@/lib/gaps";
 import { prisma } from "@/lib/prisma";
-import { createEvidenceAction, saveAnswerAction } from "../actions";
+import { EvidenceForm } from "./evidence-form";
+import { QuestionAnswerForm } from "./question-answer-form";
 
 export const dynamic = "force-dynamic";
 
@@ -184,24 +185,14 @@ export default async function SystemDetailPage({ params }: PageProps) {
             </p>
 
             {section.questions.map((question) => (
-              <form action={saveAnswerAction} className="question-form" key={question.id}>
-                <input type="hidden" name="systemId" value={system.id} />
-                <input type="hidden" name="questionId" value={question.id} />
-                <label>
-                  {question.prompt}
-                  <textarea
-                    name="response"
-                    defaultValue={answersByQuestionId.get(question.id) ?? ""}
-                    required={question.required}
-                    rows={3}
-                  />
-                </label>
-                <div className="form-actions">
-                  <button type="submit" className="button secondary">
-                    Save response
-                  </button>
-                </div>
-              </form>
+              <QuestionAnswerForm
+                key={question.id}
+                systemId={system.id}
+                questionId={question.id}
+                prompt={question.prompt}
+                required={question.required}
+                defaultResponse={answersByQuestionId.get(question.id) ?? ""}
+              />
             ))}
           </article>
         ))}
@@ -247,61 +238,11 @@ export default async function SystemDetailPage({ params }: PageProps) {
         <hr />
 
         <h3>Add Evidence</h3>
-        <form action={createEvidenceAction} className="stack-form">
-          <input type="hidden" name="systemId" value={system.id} />
-          <label>
-            Title
-            <input name="title" required />
-          </label>
-          <label>
-            Description
-            <textarea name="description" rows={2} required />
-          </label>
-          <label>
-            Section
-            <select name="sectionId" defaultValue="">
-              <option value="">Unassigned</option>
-              {sections.map((section) => (
-                <option key={section.id} value={section.id}>
-                  {section.title}
-                </option>
-              ))}
-            </select>
-          </label>
-          <label>
-            Evidence Type
-            <select name="type" defaultValue="URL">
-              <option value="URL">URL</option>
-              <option value="FILE">File</option>
-            </select>
-          </label>
-          <label>
-            URL (if type is URL)
-            <input name="sourceUrl" type="url" placeholder="https://..." />
-          </label>
-          <label>
-            File (if type is FILE)
-            <input name="file" type="file" />
-          </label>
-          <label>
-            Owner
-            <input name="owner" defaultValue={system.owner} required />
-          </label>
-          <label>
-            Status
-            <select name="status" defaultValue="COMPLETE">
-              <option value="COMPLETE">COMPLETE</option>
-              <option value="INCOMPLETE">INCOMPLETE</option>
-            </select>
-          </label>
-          <label>
-            Last Reviewed Date
-            <input name="lastReviewedDate" type="date" />
-          </label>
-          <button type="submit" className="button">
-            Attach Evidence
-          </button>
-        </form>
+        <EvidenceForm
+          systemId={system.id}
+          defaultOwner={system.owner}
+          sections={sections.map((section) => ({ id: section.id, title: section.title }))}
+        />
       </aside>
     </main>
   );
