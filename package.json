@@ -6,6 +6,7 @@
     "dev": "npm run db:prepare && next dev",
     "build": "next build",
     "start": "next start",
+    "postinstall": "prisma generate",
     "typecheck": "tsc --noEmit",
     "db:prepare": "prisma migrate deploy && prisma db seed",
     "db:migrate": "prisma migrate dev",
