@@ -2,15 +2,17 @@
   "name": "evidencepack-ai",
   "version": "0.1.0",
   "private": true,
+
+  
   "scripts": {
     "dev": "npm run db:prepare && next dev",
-    "build": "next build",
+    "build": "prisma generate && next build",
     "start": "next start",
-    "postinstall": "prisma generate",
     "typecheck": "tsc --noEmit",
-    "db:prepare": "prisma migrate deploy && prisma db seed",
-    "db:migrate": "prisma migrate dev",
-    "db:seed": "prisma db seed"
+    
+    "db:prepare": "prisma db push && prisma db seed",
+    "db:seed": "prisma db seed",
+    "postinstall": "prisma generate"
   },
   "dependencies": {
     "@prisma/client": "^5.20.0",
