@@ -17,7 +17,6 @@ MVP scaffold for generating and maintaining audit-ready evidence packs for AI sy
 
 The SQLite database file is created at `prisma/dev.db` (path from `DATABASE_URL` in `.env`).
 
-App URL: `http://localhost:3000`
 
 ## Scripts
 - `npm run dev`: Run migrations, seed demo data, start Next dev server
