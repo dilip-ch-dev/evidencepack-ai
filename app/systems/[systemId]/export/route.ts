@@ -3,6 +3,7 @@ import { NextResponse } from "next/server";
 import { buildMarkdownPack } from "@/lib/export-pack";
 import { recomputeGaps } from "@/lib/gaps";
 import { prisma } from "@/lib/prisma";
+export const dynamic = "force-dynamic";
 
 type RouteProps = {
   params: {
