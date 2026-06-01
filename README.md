@@ -92,6 +92,7 @@ Generate a markdown evidence pack containing:
 
 ## Live demo
 
+<<<<<<< HEAD
 **Coming soon**
 
 A public deployment link will be added after the first hosted release.
@@ -123,5 +124,5 @@ no enterprise permissions or integrations yet
 
 
 
----
+
 
