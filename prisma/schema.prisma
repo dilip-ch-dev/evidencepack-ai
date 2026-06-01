@@ -3,8 +3,9 @@ generator client {
 }
 
 datasource db {
-  provider = "sqlite"
-  url      = env("DATABASE_URL")
+  provider  = "postgresql"
+  url       = env("DATABASE_URL")
+  directUrl = env("DIRECT_URL")
 }
 
 model User {
@@ -47,8 +48,20 @@ model AiSystem {
   evidenceItems               EvidenceItem[]
   gaps                        Gap[]
   exportJobs                  ExportJob[]
+  assessments                 Assessment[]
 
   @@map("AISystem")
+}
+
+model Assessment {
+  id              String   @id @default(cuid())
+  systemId        String
+  score           Int
+  level           String
+  summary         String
+  recommendations String
+  createdAt       DateTime @default(now())
+  system          AiSystem @relation(fields: [systemId], references: [id], onDelete: Cascade)
 }
 
 model QuestionnaireSection {

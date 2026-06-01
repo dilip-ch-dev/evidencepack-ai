@@ -1,4 +1,5 @@
 import { prisma } from "@/lib/prisma";
+import { parseRecommendations } from "@/lib/assessment";
 
 function formatDate(value: Date | null) {
   if (!value) {
@@ -34,6 +35,10 @@ export async function buildMarkdownPack(systemId: string) {
           question: true
         },
         orderBy: { createdAt: "asc" }
+      },
+      assessments: {
+        orderBy: { createdAt: "desc" },
+        take: 1
       }
     }
   });
@@ -112,6 +117,26 @@ export async function buildMarkdownPack(systemId: string) {
       }
       if (evidenceItem.filePath) {
         lines.push(`  - File: ${evidenceItem.filePath}`);
+      }
+    }
+  }
+  lines.push("");
+
+  const latestAssessment = system.assessments[0] ?? null;
+  lines.push("## AI Readiness Assessment");
+  if (!latestAssessment) {
+    lines.push("- No assessment generated.");
+  } else {
+    lines.push(`- Score: ${latestAssessment.score}/100`);
+    lines.push(`- Level: ${latestAssessment.level}`);
+    lines.push(`- Summary: ${latestAssessment.summary}`);
+    const recommendations = parseRecommendations(latestAssessment.recommendations);
+    if (recommendations.length === 0) {
+      lines.push("- Recommendations: None provided.");
+    } else {
+      lines.push("- Recommendations:");
+      for (const recommendation of recommendations) {
+        lines.push(`  - ${recommendation}`);
       }
     }
   }

@@ -1,7 +1,9 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
+import { parseRecommendations } from "@/lib/assessment";
 import { recomputeGaps } from "@/lib/gaps";
 import { prisma } from "@/lib/prisma";
+import { AssessmentForm } from "./assessment-form";
 import { EvidenceForm } from "./evidence-form";
 import { QuestionAnswerForm } from "./question-answer-form";
 
@@ -50,6 +52,12 @@ export default async function SystemDetailPage({ params }: PageProps) {
           orderBy: {
             createdAt: "asc"
           }
+        },
+        assessments: {
+          orderBy: {
+            createdAt: "desc"
+          },
+          take: 1
         }
       }
     }),
@@ -72,6 +80,16 @@ export default async function SystemDetailPage({ params }: PageProps) {
   const answersByQuestionId = new Map(
     system.answers.map((answer) => [answer.questionId, answer.response])
   );
+  const latestAssessment = system.assessments[0] ?? null;
+  const assessmentRecommendations = latestAssessment
+    ? parseRecommendations(latestAssessment.recommendations)
+    : [];
+  const assessmentBadgeClass =
+    latestAssessment?.level === "Audit-Ready"
+      ? "complete"
+      : latestAssessment?.level === "Partially Ready"
+        ? "secondary"
+        : "incomplete";
 
   const evidenceBySectionId = new Map<string, typeof system.evidenceItems>();
   for (const evidenceItem of system.evidenceItems) {
@@ -171,6 +189,35 @@ export default async function SystemDetailPage({ params }: PageProps) {
                 </li>
               ))}
             </ul>
+          )}
+        </article>
+
+        <article className="panel">
+          <h2>AI Readiness Assessment</h2>
+          <AssessmentForm systemId={system.id} />
+          {latestAssessment ? (
+            <div className="stack-form">
+              <p>
+                <strong>Score:</strong> {latestAssessment.score}/100
+              </p>
+              <p>
+                <strong>Level:</strong>{" "}
+                <span className={`chip ${assessmentBadgeClass}`}>{latestAssessment.level}</span>
+              </p>
+              <p>{latestAssessment.summary}</p>
+              <h3>Recommendations</h3>
+              {assessmentRecommendations.length === 0 ? (
+                <p className="muted">No recommendations provided.</p>
+              ) : (
+                <ul className="plain-list">
+                  {assessmentRecommendations.map((recommendation) => (
+                    <li key={recommendation}>{recommendation}</li>
+                  ))}
+                </ul>
+              )}
+            </div>
+          ) : (
+            <p className="muted">No assessment generated yet.</p>
           )}
         </article>
 
