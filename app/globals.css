@@ -1,5 +1,13 @@
 :root {
   color-scheme: light;
+}
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  color-scheme: light;
   font-family: "Segoe UI", Arial, sans-serif;
   --bg: #f4f6f8;
   --panel: #ffffff;

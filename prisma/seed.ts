@@ -5,6 +5,8 @@ import {
   EvidenceType,
   RiskCategory
 } from "../lib/db-enums";
+import { generateAssessment } from "../lib/assessment";
+import { recomputeGaps } from "../lib/gaps";
 
 const prisma = new PrismaClient();
 const SAMPLE = "[SAMPLE DATA]";
@@ -366,6 +368,35 @@ async function seedDemoScenario() {
       }
     ]
   });
+
+  await seedSampleAssessment(system.id);
+}
+
+async function seedSampleAssessment(systemId: string) {
+  const existingAssessment = await prisma.assessment.findFirst({
+    where: { systemId },
+    orderBy: { createdAt: "desc" }
+  });
+
+  if (existingAssessment) {
+    return;
+  }
+
+  await recomputeGaps(systemId);
+  const result = await generateAssessment(systemId);
+
+  if (result.status === "success") {
+    return;
+  }
+
+  if (result.status === "rate_limited") {
+    console.warn(
+      "Sample assessment seed was rate limited; skipping for now. Re-run seed later to backfill once quota is available."
+    );
+    return;
+  }
+
+  console.warn(`Sample assessment seed skipped: ${result.message}`);
 }
 
 async function main() {

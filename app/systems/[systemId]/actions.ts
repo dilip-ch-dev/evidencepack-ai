@@ -10,6 +10,16 @@ function ensureString(value: FormDataEntryValue | null) {
 export async function runAssessmentAction(systemId: string) {
   const result = await generateAssessment(systemId);
 
+  if (result.status === "rate_limited") {
+    revalidatePath(`/systems/${systemId}`);
+
+    return {
+      status: "success" as const,
+      message: result.message,
+      assessment: result.assessment ?? undefined
+    };
+  }
+
   if (result.status === "error") {
     return {
       status: "error" as const,
