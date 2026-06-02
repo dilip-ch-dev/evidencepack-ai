@@ -60,6 +60,8 @@ model Assessment {
   level           String
   summary         String
   recommendations String
+  confidence      String?
+  citations       String?
   createdAt       DateTime @default(now())
   system          AiSystem @relation(fields: [systemId], references: [id], onDelete: Cascade)
 }
@@ -147,4 +149,13 @@ model ExportJob {
   createdAt  DateTime     @default(now())
   finishedAt DateTime?
   system     AiSystem     @relation(fields: [systemId], references: [id], onDelete: Cascade)
+}
+
+model RegulationChunk {
+  id         String                       @id @default(cuid())
+  articleRef String
+  title      String
+  text       String
+  embedding  Unsupported("vector(768)")?
+  createdAt  DateTime                     @default(now())
 }

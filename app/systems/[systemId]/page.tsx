@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
-import { parseRecommendations } from "@/lib/assessment";
+import { parseCitations, parseRecommendations } from "@/lib/assessment";
 import { recomputeGaps } from "@/lib/gaps";
 import { prisma } from "@/lib/prisma";
 import { AssessmentForm } from "./assessment-form";
@@ -84,12 +84,14 @@ export default async function SystemDetailPage({ params }: PageProps) {
   const assessmentRecommendations = latestAssessment
     ? parseRecommendations(latestAssessment.recommendations)
     : [];
+  const assessmentCitations = latestAssessment ? parseCitations(latestAssessment.citations) : [];
   const assessmentBadgeClass =
     latestAssessment?.level === "Audit-Ready"
       ? "complete"
       : latestAssessment?.level === "Partially Ready"
         ? "secondary"
         : "incomplete";
+  const assessmentConfidence = latestAssessment?.confidence ?? null;
 
   const evidenceBySectionId = new Map<string, typeof system.evidenceItems>();
   for (const evidenceItem of system.evidenceItems) {
@@ -204,6 +206,9 @@ export default async function SystemDetailPage({ params }: PageProps) {
                 <strong>Level:</strong>{" "}
                 <span className={`chip ${assessmentBadgeClass}`}>{latestAssessment.level}</span>
               </p>
+              {assessmentConfidence === "low" && (
+                <p className="chip incomplete inline-chip">Low confidence (weak retrieval grounding)</p>
+              )}
               <p>{latestAssessment.summary}</p>
               <h3>Recommendations</h3>
               {assessmentRecommendations.length === 0 ? (
@@ -211,9 +216,32 @@ export default async function SystemDetailPage({ params }: PageProps) {
               ) : (
                 <ul className="plain-list">
                   {assessmentRecommendations.map((recommendation) => (
-                    <li key={recommendation}>{recommendation}</li>
+                    <li key={`${recommendation.articleRef}-${recommendation.text}`}>
+                      <p>{recommendation.text}</p>
+                      <p className="muted small">Cited article: {recommendation.articleRef}</p>
+                      {assessmentConfidence === "low" && (
+                        <span className="chip incomplete inline-chip">Low confidence</span>
+                      )}
+                    </li>
                   ))}
                 </ul>
+              )}
+              {assessmentCitations.length > 0 && (
+                <>
+                  <h3>Retrieved Sources</h3>
+                  <ul className="plain-list">
+                    {assessmentCitations.map((citation) => (
+                      <li key={`${citation.articleRef}-${citation.title}`}>
+                        <p>
+                          {citation.articleRef} - {citation.title}
+                        </p>
+                        <p className="muted small">
+                          Similarity distance: {citation.distance.toFixed(3)}
+                        </p>
+                      </li>
+                    ))}
+                  </ul>
+                </>
               )}
             </div>
           ) : (

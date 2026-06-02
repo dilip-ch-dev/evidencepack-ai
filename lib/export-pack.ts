@@ -1,5 +1,5 @@
 import { prisma } from "@/lib/prisma";
-import { parseRecommendations } from "@/lib/assessment";
+import { parseCitations, parseRecommendations } from "@/lib/assessment";
 
 function formatDate(value: Date | null) {
   if (!value) {
@@ -129,6 +129,9 @@ export async function buildMarkdownPack(systemId: string) {
   } else {
     lines.push(`- Score: ${latestAssessment.score}/100`);
     lines.push(`- Level: ${latestAssessment.level}`);
+    if (latestAssessment.confidence) {
+      lines.push(`- Confidence: ${latestAssessment.confidence}`);
+    }
     lines.push(`- Summary: ${latestAssessment.summary}`);
     const recommendations = parseRecommendations(latestAssessment.recommendations);
     if (recommendations.length === 0) {
@@ -136,7 +139,19 @@ export async function buildMarkdownPack(systemId: string) {
     } else {
       lines.push("- Recommendations:");
       for (const recommendation of recommendations) {
-        lines.push(`  - ${recommendation}`);
+        lines.push(`  - ${recommendation.text} (Article: ${recommendation.articleRef})`);
+      }
+    }
+
+    const citations = parseCitations(latestAssessment.citations);
+    if (citations.length === 0) {
+      lines.push("- Retrieved Citations: None stored.");
+    } else {
+      lines.push("- Retrieved Citations:");
+      for (const citation of citations) {
+        lines.push(
+          `  - ${citation.articleRef} - ${citation.title} (distance: ${citation.distance.toFixed(3)})`
+        );
       }
     }
   }
