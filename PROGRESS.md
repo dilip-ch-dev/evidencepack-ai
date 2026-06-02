@@ -3,10 +3,14 @@
 ## Architecture
 
 - **App stack:** Next.js 14 App Router, React 18, TypeScript, Server Actions.
-- **Data layer:** Prisma ORM with `@prisma/client`, datasource configured for PostgreSQL in `prisma/schema.prisma`.
-- **AI integration:** Gemini via `@google/genai` in `lib/assessment.ts`.
-- **Validation and domain helpers:** Zod schemas in `lib/validation.ts`, enum constants in `lib/db-enums.ts`, gap recomputation in `lib/gaps.ts`.
+- **Data layer:** Prisma ORM with `@prisma/client`, datasource configured for PostgreSQL (Neon) in `prisma/schema.prisma`. Schema is synced via `prisma db push` (no migration history). The `pgvector` extension backs an `Unsupported("vector(768)")` embedding column on `RegulationChunk`.
+- **Grounded RAG assessment:** `lib/assessment.ts` embeds a retrieval query (Gemini `RETRIEVAL_QUERY`, 768-dim), fetches the nearest `RegulationChunk` rows by cosine distance (`embedding <=> $query::vector`), and grounds the Gemini call on those clauses. The model returns only the narrative `summary` and `articleRef`-cited `recommendations`; readiness `score`/`level` are computed deterministically (see below). Retrieved `citations` and a retrieval-distance-based `confidence` are persisted per assessment.
+- **Deterministic scoring:** `computeReadinessScore` / `deriveLevel` in `lib/assessment.ts` derive a 0–100 score from the system's own data — questionnaire completion ratio (weight 60) + evidence coverage across sections (weight 40), minus penalties for stale evidence and missing-evidence sections — reusing `GapMetrics` from `computeGapData` in `lib/gaps.ts`. Level bands: `<40` Not Ready, `40–75` Partially Ready, `>75` Audit-Ready.
+- **Regulation knowledge base:** `data/eu-ai-act-key-provisions.md` holds faithful summaries of EU AI Act high-risk obligations; `scripts/setup-pgvector.ts` enables the extension and `scripts/ingest-regulation.ts` chunks + embeds (`gemini-embedding-001`, `RETRIEVAL_DOCUMENT`) and inserts rows.
+- **AI integration:** Gemini via `@google/genai` in `lib/assessment.ts` (chat model `gemini-2.5-flash`, embeddings `gemini-embedding-001`).
+- **Validation and domain helpers:** Zod schemas in `lib/validation.ts`, enum constants in `lib/db-enums.ts`, gap + coverage-metric computation in `lib/gaps.ts` (`computeGapData`, `recomputeGaps`).
 - **Export pipeline:** Markdown pack generation in `lib/export-pack.ts`, download route at `app/systems/[systemId]/export/route.ts`.
+- **Smoke test:** `scripts/smoke-test.ts` (`npm run smoke`) runs the full pipeline against the seeded `[SAMPLE DATA] EU HR Screening Assistant` and prints chunk count, retrieved clauses (articleRef + distance), score/level/confidence, cited recommendations, and explicit PASS/FAIL checks.
 - **Runtime flow:** root route redirects to `/systems`; CRUD + questionnaire/evidence actions live in `app/systems/actions.ts` and `app/systems/[systemId]/actions.ts`.
 
 ### Folder Structure (current)
@@ -23,9 +27,12 @@
   - `prisma.ts`, `workspace.ts`, `validation.ts`, `db-enums.ts`
   - `gaps.ts`, `export-pack.ts`, `assessment.ts`
 - `prisma/`
-  - `schema.prisma`, `seed.ts`
-  - `migrations/20260320014401_init_sqlite/`
-- Root docs/config: `README.md`, `PRODUCT_SPEC.md`, `package.json`, `tsconfig.json`, `next.config.mjs`, `docker-compose.yml`
+  - `schema.prisma`, `seed.ts` (schema synced via `prisma db push`; no migrations directory)
+- `data/`
+  - `eu-ai-act-key-provisions.md`
+- `scripts/`
+  - `setup-pgvector.ts`, `ingest-regulation.ts`, `smoke-test.ts`
+- Root docs/config: `README.md`, `PRODUCT_SPEC.md`, `package.json`, `tsconfig.json`, `next.config.mjs`
 
 ## Features
 
@@ -35,9 +42,23 @@
 - Attach evidence by URL or file, with owner/status/last-reviewed metadata.
 - Recompute and display open gaps (missing evidence, unanswered required questions, stale evidence, missing required section responses).
 - Export Markdown evidence packs with system summary, responses, evidence index, open gaps, timestamps, and latest AI readiness assessment when available.
-- Generate AI Readiness Assessment using Gemini (`score`, `level`, `summary`, `recommendations`) and render latest result on system detail pages.
+- Generate a grounded AI Readiness Assessment: a deterministic, data-derived `score`/`level` paired with a Gemini-generated `summary` and EU AI Act `articleRef`-cited `recommendations`, retrieved from a pgvector regulation knowledge base. Citations and a retrieval-confidence flag are stored and rendered on system detail pages and in exports.
+- Verify the end-to-end RAG pipeline with a CLI smoke test (`npm run smoke`).
 
 ## Changelog
+
+### 2026-06-02
+
+- Made readiness `score` and `level` deterministic instead of LLM-generated:
+  - Added `computeReadinessScore` and `deriveLevel` to `lib/assessment.ts`; score = questionnaire completion ratio (weight 60) + evidence coverage across sections (weight 40), minus stale-evidence and missing-evidence penalties. Level bands: `<40` Not Ready, `40–75` Partially Ready, `>75` Audit-Ready.
+  - Refactored `lib/gaps.ts` to expose a read-only `computeGapData` returning `gapRows` + `GapMetrics`; `recomputeGaps` now reuses it, giving scoring and gap persistence one source of truth.
+  - Removed `score`/`level` from the Gemini prompt contract and `parseAssessmentPayload`; the model now returns only `summary` and cited `recommendations`. Confirmed via `npm run smoke` (x2) that the score is identical across runs (35 / Not Ready) while the narrative varies.
+- Added `scripts/smoke-test.ts` (`npm run smoke`, `import "dotenv/config"`) exercising the full pipeline against `[SAMPLE DATA] EU HR Screening Assistant` with explicit PASS/FAIL checks; added `dotenv` dev dependency.
+- Repo cleanup: removed leftover SQLite-era artifacts — `docker-compose.yml`, `prisma/migrations/20260320014401_init_sqlite/`, and `prisma/migrations/migration_lock.toml` (schema is managed via `prisma db push`). Kept `PRODUCT_SPEC.md`.
+- Calibrated retrieval confidence in `lib/assessment.ts`:
+  - Added named constant `LOW_CONFIDENCE_DISTANCE = 0.45`.
+  - Confidence now depends on retrieval distance only: low confidence is set only when the best retrieved distance exceeds `0.45`.
+- Stabilized Gemini scoring by setting generation temperature to `0.2` in assessment generation.
 
 ### 2026-06-01
 

@@ -9,6 +9,7 @@
     "typecheck": "tsc --noEmit",
     "db:prepare": "prisma db push && prisma db seed",
     "db:seed": "prisma db seed",
+    "smoke": "tsx scripts/smoke-test.ts",
     "postinstall": "prisma generate"
   },
   "dependencies": {
@@ -23,6 +24,7 @@
     "@types/node": "^20.16.10",
     "@types/react": "^18.3.8",
     "@types/react-dom": "^18.3.0",
+    "dotenv": "^17.4.2",
     "prisma": "^5.20.0",
     "tsx": "^4.19.1",
     "typescript": "^5.6.2"

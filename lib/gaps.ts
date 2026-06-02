@@ -16,7 +16,38 @@ function isEvidenceStale(lastReviewedAt: Date | null) {
   return lastReviewedAt < cutoff;
 }
 
-export async function recomputeGaps(systemId: string) {
+export type GapRow = {
+  systemId: string;
+  sectionId?: string;
+  questionId?: string;
+  evidenceItemId?: string;
+  type: GapType;
+  message: string;
+};
+
+export type GapMetrics = {
+  totalRequiredQuestions: number;
+  answeredRequiredQuestions: number;
+  totalSections: number;
+  sectionsWithEvidence: number;
+  missingEvidenceSections: number;
+  missingRequiredSections: number;
+  unansweredQuestions: number;
+  totalEvidence: number;
+  staleEvidenceCount: number;
+};
+
+export type GapComputation = {
+  gapRows: GapRow[];
+  metrics: GapMetrics;
+};
+
+/**
+ * Pure-ish computation of gap rows and quantitative coverage metrics for a system.
+ * Reads from the database but does not mutate it, so callers (gap persistence and
+ * deterministic scoring) share a single source of truth.
+ */
+export async function computeGapData(systemId: string): Promise<GapComputation> {
   const [sections, answers, evidenceItems] = await Promise.all([
     prisma.questionnaireSection.findMany({
       include: {
@@ -45,24 +76,27 @@ export async function recomputeGaps(systemId: string) {
     evidenceBySectionId.set(evidenceItem.sectionId, [...existing, evidenceItem]);
   }
 
-  const gapRows: Array<{
-    systemId: string;
-    sectionId?: string;
-    questionId?: string;
-    evidenceItemId?: string;
-    type: GapType;
-    message: string;
-  }> = [];
+  const gapRows: GapRow[] = [];
+
+  let totalRequiredQuestions = 0;
+  let answeredRequiredQuestions = 0;
+  let sectionsWithEvidence = 0;
+  let missingEvidenceSections = 0;
+  let missingRequiredSections = 0;
+  let unansweredQuestions = 0;
 
   for (const section of sections) {
     const requiredQuestions = section.questions;
     let answeredCount = 0;
 
     for (const question of requiredQuestions) {
+      totalRequiredQuestions += 1;
       const answer = answersByQuestionId.get(question.id);
       if (isAnswered(answer?.response)) {
         answeredCount += 1;
+        answeredRequiredQuestions += 1;
       } else {
+        unansweredQuestions += 1;
         gapRows.push({
           systemId,
           sectionId: section.id,
@@ -74,6 +108,7 @@ export async function recomputeGaps(systemId: string) {
     }
 
     if (requiredQuestions.length > 0 && answeredCount === 0) {
+      missingRequiredSections += 1;
       gapRows.push({
         systemId,
         sectionId: section.id,
@@ -84,17 +119,22 @@ export async function recomputeGaps(systemId: string) {
 
     const sectionEvidence = evidenceBySectionId.get(section.id) ?? [];
     if (sectionEvidence.length === 0) {
+      missingEvidenceSections += 1;
       gapRows.push({
         systemId,
         sectionId: section.id,
         type: GapType.MISSING_EVIDENCE,
         message: `No evidence attached for section: ${section.title}`
       });
+    } else {
+      sectionsWithEvidence += 1;
     }
   }
 
+  let staleEvidenceCount = 0;
   for (const evidenceItem of evidenceItems) {
     if (isEvidenceStale(evidenceItem.lastReviewedAt)) {
+      staleEvidenceCount += 1;
       gapRows.push({
         systemId,
         sectionId: evidenceItem.sectionId ?? undefined,
@@ -104,6 +144,25 @@ export async function recomputeGaps(systemId: string) {
       });
     }
   }
+
+  return {
+    gapRows,
+    metrics: {
+      totalRequiredQuestions,
+      answeredRequiredQuestions,
+      totalSections: sections.length,
+      sectionsWithEvidence,
+      missingEvidenceSections,
+      missingRequiredSections,
+      unansweredQuestions,
+      totalEvidence: evidenceItems.length,
+      staleEvidenceCount
+    }
+  };
+}
+
+export async function recomputeGaps(systemId: string) {
+  const { gapRows } = await computeGapData(systemId);
 
   await prisma.$transaction(async (tx) => {
     await tx.gap.deleteMany({

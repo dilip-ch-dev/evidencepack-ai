@@ -1,12 +1,18 @@
 import { GoogleGenAI } from "@google/genai";
 import type { Assessment } from "@prisma/client";
+import { computeGapData, type GapMetrics } from "@/lib/gaps";
 import { prisma } from "@/lib/prisma";
 
 const MODEL = process.env.GEMINI_MODEL ?? "gemini-2.5-flash";
 const EMBED_MODEL = process.env.GEMINI_EMBED_MODEL ?? "gemini-embedding-001";
 const OUTPUT_DIMENSIONALITY = 768;
-const VALID_LEVELS = new Set(["Not Ready", "Partially Ready", "Audit-Ready"]);
-const WEAK_RETRIEVAL_DISTANCE = 0.45;
+const LOW_CONFIDENCE_DISTANCE = 0.45;
+
+// Deterministic scoring weights (questionnaire completion vs evidence coverage).
+const COMPLETION_WEIGHT = 60;
+const EVIDENCE_WEIGHT = 40;
+const STALE_EVIDENCE_PENALTY = 5;
+const MISSING_EVIDENCE_PENALTY = 3;
 
 type ConfidenceLevel = "low" | "high";
 
@@ -15,13 +21,43 @@ export type RecommendationWithCitation = {
   articleRef: string;
 };
 
+// The model is responsible only for the narrative summary and grounded
+// recommendations; score and level are computed deterministically from data.
 type ParsedAssessment = {
-  score: number;
-  level: string;
   summary: string;
-  confidence: ConfidenceLevel;
   recommendations: RecommendationWithCitation[];
 };
+
+/**
+ * Deterministic readiness score (0–100) derived purely from the system's data:
+ * questionnaire completion ratio, evidence coverage across sections, and a
+ * penalty for missing/stale evidence (gap data from lib/gaps.ts).
+ */
+export function computeReadinessScore(metrics: GapMetrics): number {
+  const completionRatio =
+    metrics.totalRequiredQuestions === 0
+      ? 1
+      : metrics.answeredRequiredQuestions / metrics.totalRequiredQuestions;
+  const evidenceCoverage =
+    metrics.totalSections === 0 ? 1 : metrics.sectionsWithEvidence / metrics.totalSections;
+
+  const base = completionRatio * COMPLETION_WEIGHT + evidenceCoverage * EVIDENCE_WEIGHT;
+  const penalty =
+    metrics.staleEvidenceCount * STALE_EVIDENCE_PENALTY +
+    metrics.missingEvidenceSections * MISSING_EVIDENCE_PENALTY;
+
+  return Math.max(0, Math.min(100, Math.round(base - penalty)));
+}
+
+export function deriveLevel(score: number): string {
+  if (score < 40) {
+    return "Not Ready";
+  }
+  if (score <= 75) {
+    return "Partially Ready";
+  }
+  return "Audit-Ready";
+}
 
 type RetrievedClause = {
   articleRef: string;
@@ -83,24 +119,16 @@ function retrievalIsWeak(clauses: RetrievedClause[]) {
   }
 
   const bestDistance = Math.min(...clauses.map((clause) => clause.distance));
-  return bestDistance > WEAK_RETRIEVAL_DISTANCE;
+  return bestDistance > LOW_CONFIDENCE_DISTANCE;
 }
 
 function parseAssessmentPayload(rawText: string): ParsedAssessment | null {
   try {
     const parsed = JSON.parse(stripCodeFences(rawText)) as Partial<ParsedAssessment>;
-    const score = parsed.score;
 
     if (
-      typeof score !== "number" ||
-      !Number.isInteger(score) ||
-      score < 0 ||
-      score > 100 ||
-      typeof parsed.level !== "string" ||
-      !VALID_LEVELS.has(parsed.level) ||
       typeof parsed.summary !== "string" ||
       !parsed.summary.trim() ||
-      (parsed.confidence !== "low" && parsed.confidence !== "high") ||
       !Array.isArray(parsed.recommendations)
     ) {
       return null;
@@ -133,10 +161,7 @@ function parseAssessmentPayload(rawText: string): ParsedAssessment | null {
     }
 
     return {
-      score,
-      level: parsed.level,
       summary: parsed.summary.trim(),
-      confidence: parsed.confidence,
       recommendations
     };
   } catch {
@@ -276,6 +301,11 @@ export async function generateAssessment(systemId: string): Promise<AssessmentGe
     question: gap.question?.prompt ?? null
   }));
 
+  // Deterministic readiness score/level computed from the system's data.
+  const { metrics } = await computeGapData(systemId);
+  const score = computeReadinessScore(metrics);
+  const level = deriveLevel(score);
+
   try {
     const ai = new GoogleGenAI({ apiKey });
     const retrievalQuery = [
@@ -306,12 +336,14 @@ export async function generateAssessment(systemId: string): Promise<AssessmentGe
     const weakRetrieval = retrievalIsWeak(retrievedClauses);
     const prompt = [
       "You are an AI governance reviewer.",
-      'Return STRICT JSON only with keys: "score", "level", "summary", "confidence", "recommendations".',
-      'Rules: score must be an integer 0-100; level must be one of "Not Ready", "Partially Ready", "Audit-Ready"; summary must be 2-3 sentences.',
-      'Rules: confidence must be "low" or "high". Set confidence to "low" when retrieval evidence is weak, sparse, or only partially relevant.',
+      'Return STRICT JSON only with keys: "summary", "recommendations".',
+      "Rules: summary must be 2-3 sentences describing the system's compliance posture.",
       'Rules: recommendations must be an array of objects with keys "text" and "articleRef"; each recommendation must cite one of the retrieved articleRef values.',
       "Ground every finding in retrieved clauses only. Do not invent citations.",
+      "Do not include a numeric score or readiness level; those are computed separately.",
       "Do not include markdown fences or extra text.",
+      "",
+      `Computed readiness score (for narrative context only): ${score}/100 (${level}).`,
       "",
       "System context:",
       JSON.stringify(
@@ -349,7 +381,13 @@ export async function generateAssessment(systemId: string): Promise<AssessmentGe
       )
     ].join("\n");
 
-    const response = await ai.models.generateContent({ model: MODEL, contents: prompt });
+    const response = await ai.models.generateContent({
+      model: MODEL,
+      contents: prompt,
+      config: {
+        temperature: 0.2
+      }
+    });
     const text = response.text;
 
     if (!text) {
@@ -367,14 +405,13 @@ export async function generateAssessment(systemId: string): Promise<AssessmentGe
       };
     }
 
-    const confidence: ConfidenceLevel =
-      weakRetrieval || parsed.confidence === "low" ? "low" : "high";
+    const confidence: ConfidenceLevel = weakRetrieval ? "low" : "high";
 
     const assessment = await prisma.assessment.create({
       data: {
         systemId,
-        score: parsed.score,
-        level: parsed.level,
+        score,
+        level,
         summary: parsed.summary,
         recommendations: JSON.stringify(parsed.recommendations),
         confidence,

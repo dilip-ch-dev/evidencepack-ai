@@ -1,3 +1,80 @@
+# EvidencePack AI
+
+EvidencePack AI is a structured workflow for documenting and assessing AI systems with traceable evidence, gap tracking, and exportable governance packs. It is designed to help teams move from scattered notes to a review-ready record of what’s implemented and what’s still missing.
+
+## What EvidencePack does
+
+- Create and register an AI system with governance metadata
+- Complete a multi-section questionnaire
+- Attach supporting evidence by section
+- Automatically surface gaps (missing evidence, unanswered questions, stale evidence)
+- Export an audit-friendly Markdown evidence pack
+- Run a grounded readiness assessment using retrieved EU AI Act obligations
+
+## Grounded RAG readiness assessment
+
+EvidencePack can ground its readiness assessment in regulation text using a pgvector-backed knowledge base:
+
+- **Regulation ingestion:** `scripts/ingest-regulation.ts` chunks key EU AI Act obligations into `RegulationChunk` rows with 768-dim embeddings.
+- **pgvector retrieval:** `lib/assessment.ts` embeds a retrieval query and fetches the nearest chunks from Postgres via pgvector distance.
+- **Citations:** Gemini is prompted with retrieved clauses and must cite the returned `articleRef` values in each recommendation.
+- **Deterministic readiness score:** readiness `score` (0–100) and `level` (`Not Ready` / `Partially Ready` / `Audit-Ready`) are computed from the system’s own data using coverage metrics from `lib/gaps.ts`. Gemini is used for the narrative `summary` and grounded recommendations only (not for score/level).
+
+## Quick start
+
+1. Set up environment variables
+   - Copy `.env.example` to `.env` and fill in required values.
+2. Install
+   ```bash
+   npm install
+   ```
+3. Sync the Prisma schema and seed demo data
+   ```bash
+   npx prisma db push
+   npx prisma db seed
+   ```
+4. Enable pgvector on Neon
+   ```bash
+   node --env-file=.env --import tsx scripts/setup-pgvector.ts
+   ```
+5. Ingest the regulation knowledge base
+   ```bash
+   node --env-file=.env --import tsx scripts/ingest-regulation.ts
+   ```
+6. Smoke test (full end-to-end)
+   ```bash
+   npm run smoke
+   ```
+
+## Environment variables
+
+Required:
+- `PROD_DATABASE_URL` (used by Prisma datasource)
+- `DIRECT_URL` (used by Prisma)
+- `GEMINI_API_KEY`
+
+Optional:
+- `GEMINI_MODEL` (default: `gemini-2.5-flash`)
+- `GEMINI_EMBED_MODEL` (default: `gemini-embedding-001`)
+- `NEXT_PUBLIC_APP_NAME` (default: `EvidencePack AI`)
+
+## What the smoke test prints
+
+`npm run smoke` prints a plain-text report including:
+- `RegulationChunk` row count (non-null embeddings)
+- retrieved clauses (`articleRef` + vector distance)
+- deterministic readiness `score`/`level` and Gemini-generated `summary`
+- recommendations with `articleRef`
+- explicit PASS/FAIL checks for grounding and parsing
+
+## Stack
+
+- Next.js 14 (App Router) + React 18
+- TypeScript
+- Prisma ORM (PostgreSQL / Neon)
+- pgvector + grounded RAG
+- Gemini via `@google/genai`
+
 # EvidencePack
 
 **EvidencePack** is a full-stack workflow product for documenting AI systems through structured evidence, gap tracking, and exportable governance packs.
