@@ -174,6 +174,12 @@ export default async function SystemDetailPage({ params }: PageProps) {
         >
           Export Markdown Pack
         </a>
+        <Link
+          href={`/systems/${system.id}/assessment`}
+          className="mt-2 inline-flex w-full items-center justify-center rounded-md border border-slate-300 bg-white px-3 py-2 text-sm font-medium text-slate-900 shadow-sm hover:bg-slate-50 focus:outline-none focus:ring-2 focus:ring-slate-400 focus:ring-offset-2"
+        >
+          Shareable assessment
+        </Link>
 
         <hr className="my-4 border-slate-200" />
 

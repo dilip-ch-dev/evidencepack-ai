@@ -1,0 +1,84 @@
+[
+  {
+    "id": "hr-oversight-gap",
+    "description": "High-risk HR screening with incomplete oversight evidence should surface Art 14 style obligations.",
+    "systemProfile": {
+      "systemName": "Eval HR Screener",
+      "riskCategory": "HIGH",
+      "geography": "EU",
+      "openGaps": [
+        "Missing human oversight escalation procedure",
+        "No evidence attached for Human Oversight section"
+      ]
+    },
+    "mockRetrieved": [
+      { "articleRef": "Art 14", "title": "Human oversight" },
+      { "articleRef": "Art 9", "title": "Risk management system" },
+      { "articleRef": "Art 13", "title": "Transparency" }
+    ],
+    "mockRecommendations": [
+      {
+        "text": "Document override and stop procedures for recruiters.",
+        "articleRef": "Art 14"
+      },
+      {
+        "text": "Invent a citation that should be dropped.",
+        "articleRef": "Art 99"
+      }
+    ],
+    "expectedKeptArticleRefs": ["Art 14"],
+    "expectedDroppedCount": 1
+  },
+  {
+    "id": "data-governance-gap",
+    "description": "Training-data gaps should keep Art 10 citations and drop inventations.",
+    "systemProfile": {
+      "systemName": "Eval Data Ranker",
+      "riskCategory": "HIGH",
+      "geography": "EU",
+      "openGaps": ["Incomplete dataset provenance documentation"]
+    },
+    "mockRetrieved": [
+      { "articleRef": "Art 10", "title": "Data and data governance" },
+      { "articleRef": "Art 11 + Annex IV", "title": "Technical documentation" }
+    ],
+    "mockRecommendations": [
+      {
+        "text": "Document training/validation dataset provenance and bias checks.",
+        "articleRef": "Article 10"
+      },
+      {
+        "text": "Keep Annex IV technical documentation current.",
+        "articleRef": "Art 11 + Annex IV"
+      },
+      {
+        "text": "Hallucinated obligation.",
+        "articleRef": "Art 50"
+      }
+    ],
+    "expectedKeptArticleRefs": ["Art 10", "Art 11 + Annex IV"],
+    "expectedDroppedCount": 1
+  },
+  {
+    "id": "accuracy-cyber",
+    "description": "Monitoring/robustness gaps should accept Art 15 citations.",
+    "systemProfile": {
+      "systemName": "Eval Monitor Bot",
+      "riskCategory": "HIGH",
+      "geography": "EU",
+      "openGaps": ["No robustness/cybersecurity evidence"]
+    },
+    "mockRetrieved": [
+      { "articleRef": "Art 15", "title": "Accuracy, robustness, and cybersecurity" },
+      { "articleRef": "Art 12", "title": "Record-keeping" }
+    ],
+    "mockRecommendations": [
+      {
+        "text": "Declare accuracy metrics and adversarial resilience measures.",
+        "articleRef": "Art. 15"
+      }
+    ],
+    "expectedKeptArticleRefs": ["Art 15"],
+    "expectedDroppedCount": 0
+  }
+]

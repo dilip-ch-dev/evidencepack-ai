@@ -6,6 +6,7 @@ import {
   parseCitations,
   parseRecommendations
 } from "@/lib/assessment";
+import { normalizeArticleRef } from "@/lib/citations";
 
 const SYSTEM_NAME = "[SAMPLE DATA] EU HR Screening Assistant";
 
@@ -79,6 +80,7 @@ async function main() {
   let successCount = 0;
   let retrievalCheckPassed = true;
   let recommendationCitationCheckPassed = true;
+  let groundedCitationCheckPassed = true;
 
   for (let run = 1; run <= repeatCount; run += 1) {
     const result = await generateAssessment(system.id);
@@ -93,11 +95,13 @@ async function main() {
       });
       retrievalCheckPassed = false;
       recommendationCitationCheckPassed = false;
+      groundedCitationCheckPassed = false;
     } else {
       successCount += 1;
       const { assessment } = result;
       const citations = parseCitations(assessment.citations);
       const recommendations = parseRecommendations(assessment.recommendations);
+      const allowed = new Set(citations.map((citation) => normalizeArticleRef(citation.articleRef)));
 
       if (run === repeatCount) {
         console.log("\nRetrieved clauses (articleRef — distance) from latest successful run:");
@@ -105,7 +109,9 @@ async function main() {
           console.log("  (none)");
         } else {
           for (const clause of citations) {
-            console.log(`  - ${clause.articleRef} — ${clause.title} [distance ${fmtDistance(clause.distance)}]`);
+            console.log(
+              `  - ${clause.articleRef} — ${clause.title} [distance ${fmtDistance(clause.distance)}]`
+            );
           }
         }
 
@@ -132,6 +138,10 @@ async function main() {
         recommendations.every(
           (rec) => typeof rec.articleRef === "string" && rec.articleRef.trim().length > 0
         );
+      groundedCitationCheckPassed =
+        groundedCitationCheckPassed &&
+        recommendations.length > 0 &&
+        recommendations.every((rec) => allowed.has(normalizeArticleRef(rec.articleRef)));
     }
 
     if (run < repeatCount) {
@@ -139,7 +149,9 @@ async function main() {
     }
   }
 
-  console.log(`\nRepeat summary: ${successCount} succeeded / ${failures.length} failed (total ${repeatCount})`);
+  console.log(
+    `\nRepeat summary: ${successCount} succeeded / ${failures.length} failed (total ${repeatCount})`
+  );
   if (failures.length > 0) {
     console.log("\nFailure details:");
     for (const failure of failures) {
@@ -154,6 +166,10 @@ async function main() {
   checks.push({
     label: "every recommendation has non-empty articleRef",
     passed: recommendationCitationCheckPassed
+  });
+  checks.push({
+    label: "every recommendation citation ⊆ retrieved clauses",
+    passed: groundedCitationCheckPassed
   });
 
   printSummary(checks);
@@ -177,7 +193,9 @@ function printSummary(checks: Check[]) {
 main()
   .catch((error) => {
     console.error("\nSMOKE TEST CRASHED");
-    console.error(`Context: system="${SYSTEM_NAME}", model=${process.env.GEMINI_MODEL ?? "gemini-2.5-flash"}, embedModel=${process.env.GEMINI_EMBED_MODEL ?? "gemini-embedding-001"}`);
+    console.error(
+      `Context: system="${SYSTEM_NAME}", model=${process.env.GEMINI_MODEL ?? "gemini-2.5-flash"}, embedModel=${process.env.GEMINI_EMBED_MODEL ?? "gemini-embedding-001"}`
+    );
     if (error instanceof Error) {
       console.error(`Error: ${error.message}`);
       console.error(error.stack ?? "(no stack)");

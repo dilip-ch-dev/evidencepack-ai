@@ -7,6 +7,8 @@
     "build": "prisma generate && next build",
     "start": "next start",
     "typecheck": "tsc --noEmit",
+    "test": "tsx --test tests/unit/**/*.test.ts",
+    "eval": "tsx --test scripts/eval-assessment.ts",
     "db:prepare": "prisma db push && prisma db seed",
     "db:seed": "prisma db seed",
     "smoke": "tsx scripts/smoke-test.ts",

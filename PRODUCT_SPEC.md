@@ -108,15 +108,22 @@ Export must include:
 - no workflow automation platform
 - no sales website builder
 - no billing in phase 1
-- no integrations in phase 1 except file upload and URL references
+- no runtime model control / MLOps agent hooks (connect via system cards + evidence API instead)
+
+## Phase 1.5 additions (shipped)
+- JSON / Markdown system-card import (UI + `POST /api/v1/import`)
+- Public REST API for systems / evidence / assess
+- Grounded RAG readiness assessment with fail-closed citation gate
+- Shareable assessment page for recruiter demos
+- Optional API key protection for write routes
 
 ## User flow
 1. User creates workspace
-2. User adds AI system
+2. User adds AI system (manual create **or** system-card import / API)
 3. User completes questionnaire
 4. User uploads/links evidence
 5. App computes missing items
-6. User reviews readiness dashboard
+6. User reviews readiness dashboard / shareable assessment
 7. User exports pack
 
 ## MVP success criteria

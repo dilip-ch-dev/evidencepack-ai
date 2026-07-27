@@ -1,0 +1,48 @@
+{
+  "system": {
+    "systemName": "EU Invoice Anomaly Detector",
+    "owner": "Finance Risk Ops",
+    "businessPurpose": "Flag anomalous vendor invoices for human finance review before payment.",
+    "deploymentStatus": "PILOT",
+    "geography": "EU",
+    "modelProviderDetails": "Managed classifier API (vendor-x) model build 2026.04",
+    "humanOversightDescription": "Analysts must confirm every high-risk flag before payment holds are applied.",
+    "intendedUsers": "Accounts payable analysts",
+    "affectedStakeholders": "Vendors, finance controllers, audit team",
+    "riskCategory": "HIGH",
+    "versionReleaseIdentifier": "invoice-detector-v1.2"
+  },
+  "answers": {
+    "overview-main-function": "Scores invoices for anomaly risk and routes high-risk items to analysts.",
+    "purpose-use-case": "Reduce fraudulent or erroneous payments while keeping humans in the loop.",
+    "data-sources-list": "ERP invoice lines, vendor master data, historical payment outcomes.",
+    "model-details-architecture": "Gradient-boosted classifier with rule overlays and thresholding.",
+    "risk-controls-mitigations": "Threshold gates, dual-control for payment holds, monthly fairness review.",
+    "oversight-escalation": "Analysts can override scores and escalate to the risk committee.",
+    "monitoring-approach": "Weekly precision/recall dashboards and drift alerts on score distributions.",
+    "incident-response-plan": "Severity-based IR playbook with rollback of threshold changes.",
+    "vendor-third-party-list": "Cloud ERP connector and managed model hosting vendor.",
+    "security-access-controls": "SSO, role-based access, and immutable audit logs.",
+    "change-management-process": "Ticketed releases with offline eval gates before promotion."
+  },
+  "evidence": [
+    {
+      "title": "Fairness review Q1",
+      "description": "Slice metrics across vendor regions and invoice amounts.",
+      "type": "URL",
+      "sourceUrl": "https://example.com/invoice-fairness-q1",
+      "sectionKey": "risk-controls",
+      "owner": "Finance Risk Ops",
+      "status": "COMPLETE"
+    },
+    {
+      "title": "Monitoring SOP",
+      "description": "Operational monitoring and alert response procedure.",
+      "type": "URL",
+      "sourceUrl": "https://example.com/invoice-monitoring-sop",
+      "sectionKey": "monitoring",
+      "owner": "Finance Risk Ops",
+      "status": "COMPLETE"
+    }
+  ]
+}

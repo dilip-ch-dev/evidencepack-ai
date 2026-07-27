@@ -3,11 +3,14 @@ import Link from "next/link";
 import { prisma } from "@/lib/prisma";
 import { getOrCreatePrimaryWorkspace } from "@/lib/workspace";
 import { CreateSystemForm } from "./create-system-form";
+import { DemoBanner } from "./demo-banner";
+import { ImportSystemCardForm } from "./import-system-card-form";
 
 export const dynamic = "force-dynamic";
 
 const deploymentOptions = Object.values(DeploymentStatus);
 const riskOptions = Object.values(RiskCategory);
+const SAMPLE_SYSTEM_NAME = "[SAMPLE DATA] EU HR Screening Assistant";
 
 export default async function SystemsPage() {
   const workspace = await getOrCreatePrimaryWorkspace();
@@ -19,6 +22,7 @@ export default async function SystemsPage() {
       updatedAt: "desc"
     }
   });
+  const sampleSystem = systems.find((system) => system.systemName === SAMPLE_SYSTEM_NAME) ?? null;
 
   return (
     <main className="mx-auto grid w-full max-w-6xl gap-6 px-4 py-6">
@@ -26,8 +30,14 @@ export default async function SystemsPage() {
         <h1 className="text-balance text-2xl font-semibold tracking-tight text-slate-900">
           EvidencePack AI
         </h1>
+        <p className="mt-2 text-sm text-slate-600">
+          Governance OS for AI systems — document, gap-check, and export audit-ready
+          evidence packs grounded in the EU AI Act.
+        </p>
         <p className="mt-2 text-sm text-slate-600">Workspace: {workspace.name}</p>
       </header>
+
+      <DemoBanner sampleSystemId={sampleSystem?.id ?? null} />
 
       <section
         aria-labelledby="systems-heading"
@@ -65,6 +75,21 @@ export default async function SystemsPage() {
             ))}
           </ul>
         )}
+      </section>
+
+      <section
+        aria-labelledby="import-heading"
+        className="rounded-xl border border-slate-200 bg-white p-6 shadow-sm"
+      >
+        <h2 id="import-heading" className="text-lg font-semibold text-slate-900">
+          Import system card
+        </h2>
+        <p className="mt-2 text-sm text-slate-600">
+          Connect an existing AI system by importing a JSON system card or Markdown
+          model card. This drafts registry fields, questionnaire answers, and
+          evidence links — it does not call your model endpoint.
+        </p>
+        <ImportSystemCardForm />
       </section>
 
       <section
