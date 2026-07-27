@@ -3,7 +3,8 @@ import "./globals.css";
 
 export const metadata: Metadata = {
   title: "EvidencePack AI",
-  description: "MVP scaffold for audit-ready AI evidence packs"
+  description:
+    "Governance OS for AI systems — evidence packs, gap tracking, and grounded EU AI Act readiness assessments."
 };
 
 export default function RootLayout({

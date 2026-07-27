@@ -40,12 +40,33 @@
 - Capture system metadata (owner, purpose, deployment status, geography, provider details, oversight, stakeholders, risk, version).
 - Complete a seeded multi-section questionnaire with per-question save.
 - Attach evidence by URL or file, with owner/status/last-reviewed metadata.
+- Import JSON/Markdown system cards to draft registry fields, answers, and evidence.
 - Recompute and display open gaps (missing evidence, unanswered required questions, stale evidence, missing required section responses).
 - Export Markdown evidence packs with system summary, responses, evidence index, open gaps, timestamps, and latest AI readiness assessment when available.
 - Generate a grounded AI Readiness Assessment: a deterministic, data-derived `score`/`level` paired with a Gemini-generated `summary` and EU AI Act `articleRef`-cited `recommendations`, retrieved from a pgvector regulation knowledge base. Citations and a retrieval-confidence flag are stored and rendered on system detail pages and in exports.
+- Fail-closed citation gate drops recommendations that cite articles outside the retrieved set.
+- Public REST API (`/api/v1/*`) for list/create/import/evidence/assess plus optional demo reset.
+- Shareable assessment page at `/systems/[systemId]/assessment`.
+- Offline unit tests + citation eval corpus gated in CI.
 - Verify the end-to-end RAG pipeline with a CLI smoke test (`npm run smoke`).
 
 ## Changelog
+
+### 2026-07-27
+
+- Productized the demo/use-case path for recruiters and external systems:
+  - Rewrote `README.md` (removed merge-conflict leftovers) with live demo URL, 5-minute walkthrough, system-card connect path, and API docs.
+  - Added demo banner + system-card import UI on `/systems`.
+  - Added `lib/system-card.ts` + `examples/system-card.json` / `.md` for JSON and Markdown+YAML imports.
+  - Added shared service helpers in `lib/services/systems.ts`.
+  - Added public API routes under `app/api/v1/` (systems CRUD-ish, evidence, assess, import, demo reset) with optional `EVIDENCEPACK_API_KEY` / `DEMO_RESET_KEY`.
+  - Added shareable assessment page at `app/systems/[systemId]/assessment/page.tsx`.
+- Hardened groundedness and portfolio eval posture (patterns adapted from `agent-platform-private`):
+  - Added `lib/citations.ts` fail-closed citation filter and wired it into `generateAssessment`.
+  - Added offline eval corpus `eval/corpus.json` + `npm run eval`.
+  - Added unit tests for scoring, citations, and system-card parsing (`npm run test`).
+  - Added GitHub Actions CI for typecheck/unit/eval.
+- Updated `.env.example` with API/demo key guidance.
 
 ### 2026-06-02
 

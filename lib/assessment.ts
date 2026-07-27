@@ -1,8 +1,14 @@
 import { GoogleGenAI, Type } from "@google/genai";
 import type { Schema } from "@google/genai";
 import type { Assessment } from "@prisma/client";
+import {
+  filterGroundedRecommendations,
+  type RecommendationWithCitation
+} from "@/lib/citations";
 import { computeGapData, type GapMetrics } from "@/lib/gaps";
 import { prisma } from "@/lib/prisma";
+
+export type { RecommendationWithCitation } from "@/lib/citations";
 
 const MODEL = process.env.GEMINI_MODEL ?? "gemini-2.5-flash";
 const EMBED_MODEL = process.env.GEMINI_EMBED_MODEL ?? "gemini-embedding-001";
@@ -18,11 +24,6 @@ const STALE_EVIDENCE_PENALTY = 5;
 const MISSING_EVIDENCE_PENALTY = 3;
 
 type ConfidenceLevel = "low" | "high";
-
-export type RecommendationWithCitation = {
-  text: string;
-  articleRef: string;
-};
 
 // The model is responsible only for the narrative summary and grounded
 // recommendations; score and level are computed deterministically from data.
@@ -648,7 +649,29 @@ export async function generateAssessment(systemId: string): Promise<AssessmentGe
       };
     }
 
+    // Fail-closed citation gate: drop recommendations that cite articles
+    // not present in the retrieved clause set.
+    const grounded = filterGroundedRecommendations(
+      parsed.recommendations,
+      retrievedClauses
+    );
+    if (grounded.kept.length === 0) {
+      return {
+        status: "error",
+        message:
+          "Assessment refused: no recommendations cited retrieved regulation clauses.",
+        failure: {
+          stage: "parse",
+          errorMessage: `All ${grounded.dropped.length} recommendation citation(s) failed the groundedness gate. Allowed refs: ${grounded.allowedRefs.join(", ") || "(none)"}.`
+        }
+      };
+    }
+
     const confidence: ConfidenceLevel = weakRetrieval ? "low" : "high";
+    const droppedNote =
+      grounded.dropped.length > 0
+        ? ` Dropped ${grounded.dropped.length} ungrounded recommendation(s).`
+        : "";
 
     let assessment: Assessment;
     try {
@@ -658,7 +681,7 @@ export async function generateAssessment(systemId: string): Promise<AssessmentGe
           score,
           level,
           summary: parsed.summary,
-          recommendations: JSON.stringify(parsed.recommendations),
+          recommendations: JSON.stringify(grounded.kept),
           confidence,
           citations: JSON.stringify(
             retrievedClauses.map((clause) => ({
@@ -679,7 +702,7 @@ export async function generateAssessment(systemId: string): Promise<AssessmentGe
 
     return {
       status: "success",
-      message: "Assessment generated.",
+      message: `Assessment generated.${droppedNote}`,
       assessment
     };
   } catch (error) {
