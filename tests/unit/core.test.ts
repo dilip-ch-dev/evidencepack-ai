@@ -3,10 +3,10 @@ import { describe, it } from "node:test";
 import {
   filterGroundedRecommendations,
   normalizeArticleRef
-} from "../lib/citations";
-import { computeReadinessScore, deriveLevel } from "../lib/assessment";
-import type { GapMetrics } from "../lib/gaps";
-import { parseSystemCard } from "../lib/system-card";
+} from "../../lib/citations";
+import { computeReadinessScore, deriveLevel } from "../../lib/assessment";
+import type { GapMetrics } from "../../lib/gaps";
+import { parseSystemCard } from "../../lib/system-card";
 import { readFileSync } from "node:fs";
 import { resolve } from "node:path";
 
