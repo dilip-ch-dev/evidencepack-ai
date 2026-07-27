@@ -49,7 +49,7 @@ export function DemoBanner({ sampleSystemId }: DemoBannerProps) {
         </li>
       </ol>
       <p className="mt-3 text-xs text-slate-600">
-        Live app:{" "}
+        Use the seeded sample above for cold demos. Production URL after merge:{" "}
         <a
           href="https://evidencepack-ai.vercel.app"
           className="font-medium text-sky-800 underline underline-offset-2"
@@ -57,6 +57,13 @@ export function DemoBanner({ sampleSystemId }: DemoBannerProps) {
           rel="noreferrer"
         >
           evidencepack-ai.vercel.app
+        </a>
+        . Health:{" "}
+        <a
+          href="/api/v1/health"
+          className="font-medium text-sky-800 underline underline-offset-2"
+        >
+          /api/v1/health
         </a>
       </p>
     </section>

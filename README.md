@@ -6,7 +6,13 @@ It does **not** remote-control your model runtime. “Connecting” an AI system
 
 ## Live demo
 
-**https://evidencepack-ai.vercel.app**
+**Production (updates after PR merge):** https://evidencepack-ai.vercel.app
+
+**Current preview (this branch, already live):**  
+https://evidencepack-ai-git-cursor-govern-ec379b-dilip-ch-devs-projects.vercel.app
+
+**Shareable sample assessment:**  
+https://evidencepack-ai-git-cursor-govern-ec379b-dilip-ch-devs-projects.vercel.app/systems/cmn25waj5000zi9wf8335yo9j/assessment
 
 ### 5-minute recruiter walkthrough
 
@@ -107,6 +113,7 @@ API surface:
 
 | Method | Path | Purpose |
 |--------|------|---------|
+| GET | `/api/v1/health` | DB + regulation corpus readiness |
 | GET | `/api/v1/systems` | List systems + latest assessment summary |
 | POST | `/api/v1/systems` | Create system |
 | GET | `/api/v1/systems/:id` | System detail |

@@ -54,6 +54,11 @@
 
 ### 2026-07-27
 
+- Follow-up hardening after preview verification:
+  - Added `GET /api/v1/health` (DB + regulation chunk readiness).
+  - Extended smoke test to assert recommendation citations ⊆ retrieved clauses.
+  - Updated `PRODUCT_SPEC.md` for system-card/API phase 1.5.
+  - Documented live preview URL + shareable sample assessment in README/demo banner.
 - Productized the demo/use-case path for recruiters and external systems:
   - Rewrote `README.md` (removed merge-conflict leftovers) with live demo URL, 5-minute walkthrough, system-card connect path, and API docs.
   - Added demo banner + system-card import UI on `/systems`.
