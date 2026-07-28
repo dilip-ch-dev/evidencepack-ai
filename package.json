@@ -9,8 +9,10 @@
     "typecheck": "tsc --noEmit",
     "test": "tsx --test tests/unit/**/*.test.ts",
     "eval": "tsx --test scripts/eval-assessment.ts",
+    "db:push": "prisma db push",
     "db:prepare": "prisma db push && prisma db seed",
     "db:seed": "prisma db seed",
+    "ingest": "tsx scripts/ingest-regulation.ts",
     "smoke": "tsx scripts/smoke-test.ts",
     "postinstall": "prisma generate"
   },

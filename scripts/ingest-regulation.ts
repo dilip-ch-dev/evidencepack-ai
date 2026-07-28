@@ -3,21 +3,23 @@ import { readFileSync } from "node:fs";
 import { resolve } from "node:path";
 import { GoogleGenAI } from "@google/genai";
 import { PrismaClient } from "@prisma/client";
+import { CURRENT_CORPUS_VERSION } from "../lib/obligations";
 
 const prisma = new PrismaClient();
 
 const SOURCE_FILE = resolve(process.cwd(), "data/eu-ai-act-key-provisions.md");
 const EMBED_MODEL = process.env.GEMINI_EMBED_MODEL ?? "gemini-embedding-001";
 const OUTPUT_DIMENSIONALITY = 768;
+const CORPUS_VERSION = process.env.CORPUS_VERSION?.trim() || CURRENT_CORPUS_VERSION;
 
 type RegulationChunkInput = {
   articleRef: string;
   title: string;
   text: string;
+  keywords: string | null;
 };
 
 function parseChunks(markdown: string): RegulationChunkInput[] {
-  // One chunk per "## " article section.
   return markdown
     .split(/\n(?=## )/)
     .map((section) => section.trim())
@@ -25,14 +27,21 @@ function parseChunks(markdown: string): RegulationChunkInput[] {
     .map((section) => {
       const lines = section.split("\n");
       const heading = lines[0].replace(/^##\s*/, "").trim();
-      const body = lines.slice(1).join("\n").trim();
+      const bodyLines = lines.slice(1);
+      const keywordLine = bodyLines.find((line) => /^keywords:/i.test(line.trim()));
+      const keywords = keywordLine
+        ? keywordLine.replace(/^keywords:\s*/i, "").trim()
+        : null;
+      const body = bodyLines
+        .filter((line) => !/^keywords:/i.test(line.trim()))
+        .join("\n")
+        .trim();
 
-      // Heading format: "Art 9 — Risk management system"
       const [articleRefPart, ...titleParts] = heading.split(/\s+[—-]\s+/);
       const articleRef = articleRefPart.trim();
       const title = titleParts.join(" — ").trim() || heading;
 
-      return { articleRef, title, text: body };
+      return { articleRef, title, text: body, keywords };
     })
     .filter((chunk) => chunk.text.length > 0);
 }
@@ -44,7 +53,6 @@ async function embed(ai: GoogleGenAI, text: string): Promise<number[]> {
     config: { taskType: "RETRIEVAL_DOCUMENT", outputDimensionality: OUTPUT_DIMENSIONALITY }
   });
 
-  // Confirmed field path via probe: response.embeddings[0].values (768 floats).
   const values = response.embeddings?.[0]?.values;
   if (!Array.isArray(values) || values.length !== OUTPUT_DIMENSIONALITY) {
     throw new Error(
@@ -68,32 +76,42 @@ async function main() {
     throw new Error(`No article sections found in ${SOURCE_FILE}.`);
   }
 
-  console.log(`Parsed ${chunks.length} regulation chunks from ${SOURCE_FILE}.`);
+  console.log(
+    `Parsed ${chunks.length} regulation chunks from ${SOURCE_FILE} (corpusVersion=${CORPUS_VERSION}).`
+  );
 
-  // Idempotent re-ingest: clear previous rows for this source set.
-  await prisma.$executeRawUnsafe('DELETE FROM "RegulationChunk";');
+  // Versioned re-ingest: replace only this corpus version; keep other versions intact.
+  await prisma.$executeRawUnsafe(
+    `DELETE FROM "RegulationChunk" WHERE "corpusVersion" = $1 OR "corpusVersion" IS NULL;`,
+    CORPUS_VERSION
+  );
 
   let inserted = 0;
   for (const chunk of chunks) {
-    const embedInput = `${chunk.articleRef} — ${chunk.title}\n${chunk.text}`;
+    const embedInput = `${chunk.articleRef} — ${chunk.title}\n${chunk.text}\nKeywords: ${chunk.keywords ?? ""}`;
     const values = await embed(ai, embedInput);
     const vectorLiteral = `[${values.join(",")}]`;
 
     await prisma.$executeRawUnsafe(
-      `INSERT INTO "RegulationChunk" (id, "articleRef", title, text, embedding, "createdAt")
-       VALUES ($1, $2, $3, $4, $5::vector, NOW());`,
+      `INSERT INTO "RegulationChunk"
+        (id, "articleRef", title, text, embedding, "corpusVersion", keywords, "createdAt")
+       VALUES ($1, $2, $3, $4, $5::vector, $6, $7, NOW());`,
       randomUUID(),
       chunk.articleRef,
       chunk.title,
       chunk.text,
-      vectorLiteral
+      vectorLiteral,
+      CORPUS_VERSION,
+      chunk.keywords
     );
 
     inserted += 1;
     console.log(`Inserted ${chunk.articleRef} — ${chunk.title}`);
   }
 
-  console.log(`Done. Inserted ${inserted} regulation chunks with ${OUTPUT_DIMENSIONALITY}-dim embeddings.`);
+  console.log(
+    `Done. Inserted ${inserted} chunks for corpusVersion=${CORPUS_VERSION} (${OUTPUT_DIMENSIONALITY}-dim).`
+  );
 }
 
 main()

@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
-import { parseCitations, parseRecommendations } from "@/lib/assessment";
+import { parseCitations, parseRecommendations, parseScoreBreakdown } from "@/lib/assessment";
 import { recomputeGaps } from "@/lib/gaps";
 import { prisma } from "@/lib/prisma";
 import { AssessmentForm } from "./assessment-form";
@@ -57,7 +57,7 @@ export default async function SystemDetailPage({ params }: PageProps) {
           orderBy: {
             createdAt: "desc"
           },
-          take: 1
+          take: 5
         }
       }
     }),
@@ -81,10 +81,14 @@ export default async function SystemDetailPage({ params }: PageProps) {
     system.answers.map((answer) => [answer.questionId, answer.response])
   );
   const latestAssessment = system.assessments[0] ?? null;
+  const previousAssessment = system.assessments[1] ?? null;
   const assessmentRecommendations = latestAssessment
     ? parseRecommendations(latestAssessment.recommendations)
     : [];
   const assessmentCitations = latestAssessment ? parseCitations(latestAssessment.citations) : [];
+  const scoreBreakdown = latestAssessment
+    ? parseScoreBreakdown(latestAssessment.scoreBreakdown)
+    : null;
   const assessmentLevelTone =
     latestAssessment?.level === "Audit-Ready"
       ? "bg-emerald-50 text-emerald-800 ring-emerald-200"
@@ -92,6 +96,10 @@ export default async function SystemDetailPage({ params }: PageProps) {
         ? "bg-amber-50 text-amber-800 ring-amber-200"
         : "bg-slate-50 text-slate-800 ring-slate-200";
   const assessmentConfidence = latestAssessment?.confidence ?? null;
+  const scoreDelta =
+    latestAssessment && previousAssessment
+      ? latestAssessment.score - previousAssessment.score
+      : null;
 
   const evidenceBySectionId = new Map<string, typeof system.evidenceItems>();
   for (const evidenceItem of system.evidenceItems) {
@@ -323,9 +331,83 @@ export default async function SystemDetailPage({ params }: PageProps) {
                   Needs attention: low confidence (weak retrieval grounding)
                 </p>
               )}
+
+              <div className="flex flex-wrap gap-2 text-xs text-slate-600">
+                {latestAssessment.scoringVersion && (
+                  <span className="rounded-full bg-white px-2 py-1 ring-1 ring-slate-200">
+                    {latestAssessment.scoringVersion}
+                  </span>
+                )}
+                {latestAssessment.corpusVersion && (
+                  <span className="rounded-full bg-white px-2 py-1 ring-1 ring-slate-200">
+                    corpus {latestAssessment.corpusVersion}
+                  </span>
+                )}
+                {scoreDelta !== null && (
+                  <span className="rounded-full bg-white px-2 py-1 ring-1 ring-slate-200">
+                    Δ score {scoreDelta >= 0 ? "+" : ""}
+                    {scoreDelta} vs prior run
+                  </span>
+                )}
+                <Link
+                  href={`/systems/${system.id}/assessment`}
+                  className="rounded-full bg-white px-2 py-1 font-medium text-sky-800 ring-1 ring-slate-200"
+                >
+                  Shareable page
+                </Link>
+              </div>
+
               <p className="max-w-prose text-sm leading-relaxed text-slate-900">
                 {latestAssessment.summary}
               </p>
+
+              {scoreBreakdown && (
+                <details className="rounded-lg border border-slate-200 bg-white p-4" open>
+                  <summary className="cursor-pointer text-sm font-medium text-slate-900">
+                    Why this score
+                  </summary>
+                  <div className="mt-3 grid gap-3 text-sm text-slate-700">
+                    <p>
+                      Documentation readiness:{" "}
+                      <strong>{scoreBreakdown.documentationReadiness}</strong> · Control
+                      readiness: <strong>{scoreBreakdown.controlReadiness}</strong>
+                    </p>
+                    <ul className="grid gap-1 text-xs text-slate-600">
+                      <li>
+                        Questionnaire completion:{" "}
+                        {scoreBreakdown.components.questionnaireCompletion}%
+                      </li>
+                      <li>
+                        Evidence coverage: {scoreBreakdown.components.evidenceCoverage}%
+                      </li>
+                      <li>
+                        Penalties: stale {scoreBreakdown.components.staleEvidencePenalty}, missing
+                        evidence {scoreBreakdown.components.missingEvidencePenalty}
+                      </li>
+                    </ul>
+                    {scoreBreakdown.obligations.length > 0 && (
+                      <div className="mt-1 grid gap-2">
+                        <p className="text-xs font-semibold uppercase tracking-wide text-slate-500">
+                          Obligation coverage
+                        </p>
+                        {scoreBreakdown.obligations.map((obligation) => (
+                          <div
+                            key={obligation.articleRef}
+                            className="flex flex-wrap items-center justify-between gap-2 rounded-md border border-slate-200 bg-slate-50 px-3 py-2"
+                          >
+                            <span className="text-xs font-medium text-slate-900">
+                              {obligation.articleRef} — {obligation.title}
+                            </span>
+                            <span className="text-xs text-slate-700">
+                              {obligation.score}/100 · {obligation.status}
+                            </span>
+                          </div>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+                </details>
+              )}
 
               <h3 className="text-base font-semibold text-slate-900">Recommendations</h3>
               {assessmentRecommendations.length === 0 ? (
@@ -372,6 +454,30 @@ export default async function SystemDetailPage({ params }: PageProps) {
                         <p className="mt-1 text-xs text-slate-600">
                           Distance: {citation.distance.toFixed(3)}
                         </p>
+                      </li>
+                    ))}
+                  </ul>
+                </details>
+              )}
+
+              {system.assessments.length > 1 && (
+                <details className="rounded-lg border border-slate-200 bg-white p-4">
+                  <summary className="cursor-pointer text-sm font-medium text-slate-900">
+                    Assessment history
+                  </summary>
+                  <ul className="mt-3 grid gap-2 text-sm text-slate-700">
+                    {system.assessments.map((item, index) => (
+                      <li
+                        key={item.id}
+                        className="flex flex-wrap items-center justify-between gap-2 rounded-md border border-slate-200 px-3 py-2"
+                      >
+                        <span>
+                          {item.score}/100 · {item.level}
+                          {index === 0 ? " (latest)" : ""}
+                        </span>
+                        <span className="text-xs text-slate-500">
+                          {item.createdAt.toISOString().slice(0, 19)}Z
+                        </span>
                       </li>
                     ))}
                   </ul>

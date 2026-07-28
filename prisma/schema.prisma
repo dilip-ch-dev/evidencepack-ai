@@ -9,11 +9,11 @@ datasource db {
 }
 
 model User {
-  id        String      @id @default(cuid())
-  email     String      @unique
-  name      String
-  createdAt DateTime    @default(now())
-  updatedAt DateTime    @updatedAt
+  id         String      @id @default(cuid())
+  email      String      @unique
+  name       String
+  createdAt  DateTime    @default(now())
+  updatedAt  DateTime    @updatedAt
   workspaces Workspace[]
 }
 
@@ -28,27 +28,28 @@ model Workspace {
 }
 
 model AiSystem {
-  id                          String   @id @default(cuid())
-  workspaceId                 String
-  systemName                  String
-  owner                       String
-  businessPurpose             String
-  deploymentStatus            String
-  geography                   String
-  modelProviderDetails        String
-  humanOversightDescription   String
-  intendedUsers               String
-  affectedStakeholders        String
-  riskCategory                String
-  versionReleaseIdentifier    String
-  createdAt                   DateTime @default(now())
-  updatedAt                   DateTime @updatedAt
-  workspace                   Workspace @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
-  answers                     Answer[]
-  evidenceItems               EvidenceItem[]
-  gaps                        Gap[]
-  exportJobs                  ExportJob[]
-  assessments                 Assessment[]
+  id                        String          @id @default(cuid())
+  workspaceId               String
+  systemName                String
+  owner                     String
+  businessPurpose           String
+  deploymentStatus          String
+  geography                 String
+  modelProviderDetails      String
+  humanOversightDescription String
+  intendedUsers             String
+  affectedStakeholders      String
+  riskCategory              String
+  versionReleaseIdentifier  String
+  createdAt                 DateTime        @default(now())
+  updatedAt                 DateTime        @updatedAt
+  workspace                 Workspace       @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+  answers                   Answer[]
+  evidenceItems             EvidenceItem[]
+  gaps                      Gap[]
+  exportJobs                ExportJob[]
+  assessments               Assessment[]
+  assessmentRuns            AssessmentRun[]
 
   @@map("AISystem")
 }
@@ -62,17 +63,38 @@ model Assessment {
   recommendations String
   confidence      String?
   citations       String?
+  scoringVersion  String?
+  corpusVersion   String?
+  scoreBreakdown  String?
   createdAt       DateTime @default(now())
   system          AiSystem @relation(fields: [systemId], references: [id], onDelete: Cascade)
 }
 
+model AssessmentRun {
+  id               String   @id @default(cuid())
+  systemId         String
+  status           String
+  stage            String?
+  latencyMs        Int?
+  scoringVersion   String?
+  corpusVersion    String?
+  retrievedCount   Int?
+  droppedCitations Int?
+  errorMessage     String?
+  retrievalLog     String?
+  createdAt        DateTime @default(now())
+  system           AiSystem @relation(fields: [systemId], references: [id], onDelete: Cascade)
+
+  @@index([systemId, createdAt])
+}
+
 model QuestionnaireSection {
-  id           String         @id @default(cuid())
-  sectionKey   String         @unique
-  title        String
-  description  String?
-  displayOrder Int
-  questions    Question[]
+  id            String         @id @default(cuid())
+  sectionKey    String         @unique
+  title         String
+  description   String?
+  displayOrder  Int
+  questions     Question[]
   evidenceItems EvidenceItem[]
   gaps          Gap[]
 }
@@ -105,7 +127,7 @@ model Answer {
 }
 
 model EvidenceItem {
-  id             String               @id @default(cuid())
+  id             String                @id @default(cuid())
   systemId       String
   sectionId      String?
   title          String
@@ -116,9 +138,9 @@ model EvidenceItem {
   owner          String
   status         String
   lastReviewedAt DateTime?
-  createdAt      DateTime             @default(now())
-  updatedAt      DateTime             @updatedAt
-  system         AiSystem             @relation(fields: [systemId], references: [id], onDelete: Cascade)
+  createdAt      DateTime              @default(now())
+  updatedAt      DateTime              @updatedAt
+  system         AiSystem              @relation(fields: [systemId], references: [id], onDelete: Cascade)
   section        QuestionnaireSection? @relation(fields: [sectionId], references: [id], onDelete: SetNull)
   gaps           Gap[]
 }
@@ -141,21 +163,26 @@ model Gap {
 }
 
 model ExportJob {
-  id         String       @id @default(cuid())
+  id         String    @id @default(cuid())
   systemId   String
   format     String
   status     String
   outputPath String?
-  createdAt  DateTime     @default(now())
+  createdAt  DateTime  @default(now())
   finishedAt DateTime?
-  system     AiSystem     @relation(fields: [systemId], references: [id], onDelete: Cascade)
+  system     AiSystem  @relation(fields: [systemId], references: [id], onDelete: Cascade)
 }
 
 model RegulationChunk {
-  id         String                       @id @default(cuid())
-  articleRef String
-  title      String
-  text       String
-  embedding  Unsupported("vector(768)")?
-  createdAt  DateTime                     @default(now())
+  id            String                      @id @default(cuid())
+  articleRef    String
+  title         String
+  text          String
+  embedding     Unsupported("vector(768)")?
+  corpusVersion String                      @default("eu-ai-act-v2")
+  keywords      String?
+  createdAt     DateTime                    @default(now())
+
+  @@index([corpusVersion])
+  @@index([articleRef])
 }
