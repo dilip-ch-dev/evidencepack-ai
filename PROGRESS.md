@@ -54,6 +54,13 @@
 
 ### 2026-07-28
 
+- Senior ML/systems upgrade pack:
+  - Expanded regulation corpus to `eu-ai-act-v2` (Arts 6/8/9–16/26/72) with keywords + versioned ingest.
+  - Added hybrid retrieval (`lib/retrieval.ts`: vector + keyword + gap-aware boost).
+  - Added `scoring_v2` obligation coverage matrix (`lib/scoring.ts`, `lib/obligations.ts`) with documentation vs control readiness.
+  - Persisted `scoringVersion`, `corpusVersion`, `scoreBreakdown` on Assessment; added `AssessmentRun` observability + `/api/v1/systems/:id/runs`.
+  - UI: Why this score, obligation coverage, assessment history/delta, shareable link.
+  - Expanded offline eval corpus; health endpoint reports scoring/corpus versions.
 - Post-merge production verification + polish:
   - Confirmed production serves demo banner, import UI, `/api/v1/health`, systems API, shareable assessment, and Markdown export.
   - Pointed README + demo banner at canonical production URLs (removed temporary preview wording).

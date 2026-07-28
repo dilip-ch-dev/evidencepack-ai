@@ -1,5 +1,5 @@
 import { prisma } from "@/lib/prisma";
-import { parseCitations, parseRecommendations } from "@/lib/assessment";
+import { parseCitations, parseRecommendations, parseScoreBreakdown } from "@/lib/assessment";
 
 function formatDate(value: Date | null) {
   if (!value) {
@@ -129,10 +129,30 @@ export async function buildMarkdownPack(systemId: string) {
   } else {
     lines.push(`- Score: ${latestAssessment.score}/100`);
     lines.push(`- Level: ${latestAssessment.level}`);
+    if (latestAssessment.scoringVersion) {
+      lines.push(`- Scoring Version: ${latestAssessment.scoringVersion}`);
+    }
+    if (latestAssessment.corpusVersion) {
+      lines.push(`- Corpus Version: ${latestAssessment.corpusVersion}`);
+    }
     if (latestAssessment.confidence) {
       lines.push(`- Confidence: ${latestAssessment.confidence}`);
     }
     lines.push(`- Summary: ${latestAssessment.summary}`);
+    const breakdown = parseScoreBreakdown(latestAssessment.scoreBreakdown);
+    if (breakdown) {
+      lines.push(
+        `- Documentation readiness: ${breakdown.documentationReadiness}; Control readiness: ${breakdown.controlReadiness}`
+      );
+      if (breakdown.obligations.length > 0) {
+        lines.push("- Obligation coverage:");
+        for (const obligation of breakdown.obligations) {
+          lines.push(
+            `  - ${obligation.articleRef} (${obligation.status}): ${obligation.score}/100`
+          );
+        }
+      }
+    }
     const recommendations = parseRecommendations(latestAssessment.recommendations);
     if (recommendations.length === 0) {
       lines.push("- Recommendations: None provided.");

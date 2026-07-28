@@ -139,10 +139,23 @@ Optional:
 
 ## Design decisions (portfolio)
 
-1. **Hybrid scoring:** LLM never owns readiness score/level — metrics do.
-2. **Grounded recommendations:** retrieval first; fail-closed citation filter second.
+1. **Hybrid scoring:** LLM never owns readiness score/level — metrics do (`scoring_v2` obligation matrix by default).
+2. **Grounded recommendations:** hybrid retrieval (vector + keyword + gap-aware boost) first; fail-closed citation filter second.
 3. **System cards over runtime hooks:** portfolio-honest “connect your AI system” path via docs/evidence import + API.
 4. **Eval before vibes:** offline corpus in `eval/corpus.json` gates citation behavior in CI.
+5. **Observable runs:** `AssessmentRun` stores latency/stage/retrieval logs for glass-box demos.
+6. **Versioned corpus:** regulation chunks carry `corpusVersion` (`eu-ai-act-v2`) so ingest is replace-by-version, not blind wipe.
+
+## After deploy / schema upgrades
+
+Production needs a one-time schema sync + corpus re-ingest when this upgrade lands:
+
+```bash
+npx prisma db push
+node --env-file=.env --import tsx scripts/ingest-regulation.ts
+```
+
+Or locally: `npm run db:push && npm run ingest`
 
 ## Stack
 

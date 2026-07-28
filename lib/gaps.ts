@@ -1,5 +1,6 @@
 import { GapType } from "@/lib/db-enums";
 import { prisma } from "@/lib/prisma";
+import type { SectionCoverage } from "@/lib/scoring";
 
 const STALE_DAYS = 90;
 
@@ -40,6 +41,7 @@ export type GapMetrics = {
 export type GapComputation = {
   gapRows: GapRow[];
   metrics: GapMetrics;
+  sections: SectionCoverage[];
 };
 
 /**
@@ -77,6 +79,7 @@ export async function computeGapData(systemId: string): Promise<GapComputation> 
   }
 
   const gapRows: GapRow[] = [];
+  const sectionCoverage: SectionCoverage[] = [];
 
   let totalRequiredQuestions = 0;
   let answeredRequiredQuestions = 0;
@@ -118,7 +121,9 @@ export async function computeGapData(systemId: string): Promise<GapComputation> 
     }
 
     const sectionEvidence = evidenceBySectionId.get(section.id) ?? [];
-    if (sectionEvidence.length === 0) {
+    const hasEvidence = sectionEvidence.length > 0;
+    const staleEvidence = sectionEvidence.some((item) => isEvidenceStale(item.lastReviewedAt));
+    if (!hasEvidence) {
       missingEvidenceSections += 1;
       gapRows.push({
         systemId,
@@ -129,6 +134,15 @@ export async function computeGapData(systemId: string): Promise<GapComputation> 
     } else {
       sectionsWithEvidence += 1;
     }
+
+    sectionCoverage.push({
+      sectionKey: section.sectionKey,
+      title: section.title,
+      requiredQuestions: requiredQuestions.length,
+      answeredRequired: answeredCount,
+      hasEvidence,
+      staleEvidence
+    });
   }
 
   let staleEvidenceCount = 0;
@@ -157,7 +171,8 @@ export async function computeGapData(systemId: string): Promise<GapComputation> 
       unansweredQuestions,
       totalEvidence: evidenceItems.length,
       staleEvidenceCount
-    }
+    },
+    sections: sectionCoverage
   };
 }
 

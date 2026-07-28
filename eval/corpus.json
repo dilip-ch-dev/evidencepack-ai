@@ -80,5 +80,53 @@
     ],
     "expectedKeptArticleRefs": ["Art 15"],
     "expectedDroppedCount": 0
+  },
+  {
+    "id": "deployer-workplace",
+    "description": "Workplace deployer obligations should accept Art 26 when retrieved.",
+    "systemProfile": {
+      "systemName": "Eval Workplace Screener",
+      "riskCategory": "HIGH",
+      "geography": "EU",
+      "openGaps": ["Workers not informed before workplace AI deployment"]
+    },
+    "mockRetrieved": [
+      { "articleRef": "Art 26", "title": "Obligations of deployers of high-risk AI systems" },
+      { "articleRef": "Art 14", "title": "Human oversight" }
+    ],
+    "mockRecommendations": [
+      {
+        "text": "Inform workers/representatives before deploying workplace AI.",
+        "articleRef": "Art 26"
+      },
+      {
+        "text": "Fake article",
+        "articleRef": "Art 9000"
+      }
+    ],
+    "expectedKeptArticleRefs": ["Art 26"],
+    "expectedDroppedCount": 1
+  },
+  {
+    "id": "post-market-monitoring",
+    "description": "Lifecycle monitoring gaps should keep Art 72 citations.",
+    "systemProfile": {
+      "systemName": "Eval Postmarket",
+      "riskCategory": "HIGH",
+      "geography": "EU",
+      "openGaps": ["No post-market monitoring plan documented"]
+    },
+    "mockRetrieved": [
+      { "articleRef": "Art 72", "title": "Post-market monitoring by providers" },
+      { "articleRef": "Art 9", "title": "Risk management system" }
+    ],
+    "mockRecommendations": [
+      {
+        "text": "Establish proportionate post-market monitoring across the lifecycle.",
+        "articleRef": "Art 72"
+      }
+    ],
+    "expectedKeptArticleRefs": ["Art 72"],
+    "expectedDroppedCount": 0
   }
 ]

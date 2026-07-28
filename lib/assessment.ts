@@ -5,10 +5,23 @@ import {
   filterGroundedRecommendations,
   type RecommendationWithCitation
 } from "@/lib/citations";
-import { computeGapData, type GapMetrics } from "@/lib/gaps";
+import { computeGapData } from "@/lib/gaps";
+import {
+  CURRENT_CORPUS_VERSION,
+  CURRENT_SCORING_VERSION
+} from "@/lib/obligations";
 import { prisma } from "@/lib/prisma";
+import { retrieveRelevantClausesHybrid, type RetrievedClause } from "@/lib/retrieval";
+import {
+  computeReadinessScore,
+  computeScoreBreakdown,
+  deriveLevel,
+  type ScoreBreakdown
+} from "@/lib/scoring";
 
 export type { RecommendationWithCitation } from "@/lib/citations";
+export { computeReadinessScore, deriveLevel } from "@/lib/scoring";
+export type { ScoreBreakdown } from "@/lib/scoring";
 
 const MODEL = process.env.GEMINI_MODEL ?? "gemini-2.5-flash";
 const EMBED_MODEL = process.env.GEMINI_EMBED_MODEL ?? "gemini-embedding-001";
@@ -17,57 +30,11 @@ const LOW_CONFIDENCE_DISTANCE = 0.45;
 const RETRY_ATTEMPTS = 2;
 const RETRY_BACKOFF_MS = 500;
 
-// Deterministic scoring weights (questionnaire completion vs evidence coverage).
-const COMPLETION_WEIGHT = 60;
-const EVIDENCE_WEIGHT = 40;
-const STALE_EVIDENCE_PENALTY = 5;
-const MISSING_EVIDENCE_PENALTY = 3;
-
 type ConfidenceLevel = "low" | "high";
 
-// The model is responsible only for the narrative summary and grounded
-// recommendations; score and level are computed deterministically from data.
 type ParsedAssessment = {
   summary: string;
   recommendations: RecommendationWithCitation[];
-};
-
-/**
- * Deterministic readiness score (0–100) derived purely from the system's data:
- * questionnaire completion ratio, evidence coverage across sections, and a
- * penalty for missing/stale evidence (gap data from lib/gaps.ts).
- */
-export function computeReadinessScore(metrics: GapMetrics): number {
-  const completionRatio =
-    metrics.totalRequiredQuestions === 0
-      ? 1
-      : metrics.answeredRequiredQuestions / metrics.totalRequiredQuestions;
-  const evidenceCoverage =
-    metrics.totalSections === 0 ? 1 : metrics.sectionsWithEvidence / metrics.totalSections;
-
-  const base = completionRatio * COMPLETION_WEIGHT + evidenceCoverage * EVIDENCE_WEIGHT;
-  const penalty =
-    metrics.staleEvidenceCount * STALE_EVIDENCE_PENALTY +
-    metrics.missingEvidenceSections * MISSING_EVIDENCE_PENALTY;
-
-  return Math.max(0, Math.min(100, Math.round(base - penalty)));
-}
-
-export function deriveLevel(score: number): string {
-  if (score < 40) {
-    return "Not Ready";
-  }
-  if (score <= 75) {
-    return "Partially Ready";
-  }
-  return "Audit-Ready";
-}
-
-type RetrievedClause = {
-  articleRef: string;
-  title: string;
-  text: string;
-  distance: number;
 };
 
 export type AssessmentFailureStage = "embed" | "retrieve" | "generate" | "parse" | "persist";
@@ -132,11 +99,9 @@ function getErrorMessage(error: unknown, fallback: string) {
   if (error instanceof Error && error.message) {
     return error.message;
   }
-
   if (typeof error === "string" && error.trim()) {
     return error;
   }
-
   return fallback;
 }
 
@@ -144,17 +109,14 @@ function getErrorStatus(error: unknown): number | undefined {
   if (!error || typeof error !== "object") {
     return undefined;
   }
-
   const status = "status" in error ? error.status : undefined;
   if (typeof status === "number") {
     return status;
   }
-
   const statusCode = "statusCode" in error ? error.statusCode : undefined;
   if (typeof statusCode === "number") {
     return statusCode;
   }
-
   return undefined;
 }
 
@@ -168,7 +130,6 @@ function isTransientError(error: unknown) {
   if (status === 429 || (typeof status === "number" && status >= 500)) {
     return true;
   }
-
   const message = getErrorMessage(error, "");
   return /429|5\d\d|timeout|timed out|network|connection closed|socket hang up|econnreset|eai_again|enotfound|etimedout/i.test(
     message
@@ -199,7 +160,6 @@ function getRetryDelayMs(error: unknown): number | undefined {
   if (!error || typeof error !== "object") {
     return undefined;
   }
-
   const maybeAny = error as Record<string, unknown>;
   const responseData = maybeAny["responseData"];
   if (responseData && typeof responseData === "object") {
@@ -219,14 +179,8 @@ function getRetryDelayMs(error: unknown): number | undefined {
       }
     }
   }
-
   const message = getErrorMessage(error, "");
-  const fromMessage = parseSecondsToMs(message);
-  if (typeof fromMessage === "number") {
-    return fromMessage;
-  }
-
-  return undefined;
+  return parseSecondsToMs(message);
 }
 
 async function sleep(ms: number) {
@@ -268,29 +222,13 @@ async function embedRetrievalQuery(ai: GoogleGenAI, content: string): Promise<nu
   if (!Array.isArray(values) || values.length !== OUTPUT_DIMENSIONALITY) {
     throw new Error("Unexpected query embedding shape.");
   }
-
   return values;
-}
-
-async function retrieveRelevantClauses(queryEmbedding: number[]): Promise<RetrievedClause[]> {
-  const vectorLiteral = `[${queryEmbedding.join(",")}]`;
-  const rows = await prisma.$queryRawUnsafe<RetrievedClause[]>(
-    `SELECT "articleRef", title, text, embedding <=> $1::vector AS distance
-     FROM "RegulationChunk"
-     WHERE embedding IS NOT NULL
-     ORDER BY embedding <=> $1::vector
-     LIMIT 4;`,
-    vectorLiteral
-  );
-
-  return rows.filter((row) => Number.isFinite(row.distance));
 }
 
 function retrievalIsWeak(clauses: RetrievedClause[]) {
   if (clauses.length === 0) {
     return true;
   }
-
   const bestDistance = Math.min(...clauses.map((clause) => clause.distance));
   return bestDistance > LOW_CONFIDENCE_DISTANCE;
 }
@@ -298,7 +236,6 @@ function retrievalIsWeak(clauses: RetrievedClause[]) {
 function parseAssessmentPayload(rawText: string): ParsedAssessment | null {
   try {
     const parsed = JSON.parse(stripCodeFences(rawText)) as Partial<ParsedAssessment>;
-
     if (
       typeof parsed.summary !== "string" ||
       !parsed.summary.trim() ||
@@ -312,19 +249,16 @@ function parseAssessmentPayload(rawText: string): ParsedAssessment | null {
         if (!item || typeof item !== "object") {
           return null;
         }
-
         const textValue = "text" in item ? item.text : null;
         const articleRefValue = "articleRef" in item ? item.articleRef : null;
         if (typeof textValue !== "string" || typeof articleRefValue !== "string") {
           return null;
         }
-
         const text = textValue.trim();
         const articleRef = articleRefValue.trim();
         if (!text || !articleRef) {
           return null;
         }
-
         return { text, articleRef };
       })
       .filter((item): item is RecommendationWithCitation => Boolean(item));
@@ -348,30 +282,25 @@ export function parseRecommendations(recommendations: string) {
     if (!Array.isArray(parsed)) {
       return [];
     }
-
     return parsed
       .map((item) => {
         if (typeof item === "string") {
           const text = item.trim();
           return text ? { text, articleRef: "Not cited" } : null;
         }
-
         if (!item || typeof item !== "object") {
           return null;
         }
-
         const textValue = "text" in item ? item.text : null;
         const articleRefValue = "articleRef" in item ? item.articleRef : null;
         if (typeof textValue !== "string" || typeof articleRefValue !== "string") {
           return null;
         }
-
         const text = textValue.trim();
         const articleRef = articleRefValue.trim();
         if (!text || !articleRef) {
           return null;
         }
-
         return { text, articleRef };
       })
       .filter((item): item is RecommendationWithCitation => Boolean(item));
@@ -384,19 +313,16 @@ export function parseCitations(citations: string | null) {
   if (!citations) {
     return [];
   }
-
   try {
     const parsed = JSON.parse(citations) as unknown;
     if (!Array.isArray(parsed)) {
       return [];
     }
-
     return parsed
       .map((item) => {
         if (!item || typeof item !== "object") {
           return null;
         }
-
         const articleRefValue = "articleRef" in item ? item.articleRef : null;
         const titleValue = "title" in item ? item.title : null;
         const distanceValue = "distance" in item ? item.distance : null;
@@ -407,7 +333,6 @@ export function parseCitations(citations: string | null) {
         ) {
           return null;
         }
-
         return {
           articleRef: articleRefValue,
           title: titleValue,
@@ -422,14 +347,68 @@ export function parseCitations(citations: string | null) {
   }
 }
 
+export function parseScoreBreakdown(raw: string | null): ScoreBreakdown | null {
+  if (!raw) {
+    return null;
+  }
+  try {
+    return JSON.parse(raw) as ScoreBreakdown;
+  } catch {
+    return null;
+  }
+}
+
+async function logAssessmentRun(args: {
+  systemId: string;
+  status: string;
+  stage?: string;
+  latencyMs?: number;
+  scoringVersion?: string;
+  corpusVersion?: string;
+  retrievedCount?: number;
+  droppedCitations?: number;
+  errorMessage?: string;
+  retrievalLog?: unknown;
+}) {
+  try {
+    await prisma.assessmentRun.create({
+      data: {
+        systemId: args.systemId,
+        status: args.status,
+        stage: args.stage,
+        latencyMs: args.latencyMs,
+        scoringVersion: args.scoringVersion,
+        corpusVersion: args.corpusVersion,
+        retrievedCount: args.retrievedCount,
+        droppedCitations: args.droppedCitations,
+        errorMessage: args.errorMessage,
+        retrievalLog: args.retrievalLog ? JSON.stringify(args.retrievalLog) : null
+      }
+    });
+  } catch {
+    // Observability must never block the user-facing assessment path.
+  }
+}
+
 async function buildRateLimitedFallbackResult(
   systemId: string,
   stage: AssessmentFailureStage,
-  error: unknown
+  error: unknown,
+  startedAt: number
 ): Promise<AssessmentGenerationResult> {
   const latestSavedAssessment = await prisma.assessment.findFirst({
     where: { systemId },
     orderBy: { createdAt: "desc" }
+  });
+
+  await logAssessmentRun({
+    systemId,
+    status: "rate_limited",
+    stage,
+    latencyMs: Date.now() - startedAt,
+    scoringVersion: CURRENT_SCORING_VERSION,
+    corpusVersion: CURRENT_CORPUS_VERSION,
+    errorMessage: getErrorMessage(error, "Rate limited")
   });
 
   return {
@@ -441,6 +420,8 @@ async function buildRateLimitedFallbackResult(
 }
 
 export async function generateAssessment(systemId: string): Promise<AssessmentGenerationResult> {
+  const startedAt = Date.now();
+
   const system = await prisma.aiSystem.findUnique({
     where: { id: systemId },
     include: {
@@ -492,10 +473,10 @@ export async function generateAssessment(systemId: string): Promise<AssessmentGe
     question: gap.question?.prompt ?? null
   }));
 
-  // Deterministic readiness score/level computed from the system's data.
-  const { metrics } = await computeGapData(systemId);
-  const score = computeReadinessScore(metrics);
-  const level = deriveLevel(score);
+  const { metrics, sections } = await computeGapData(systemId);
+  const breakdown = computeScoreBreakdown(metrics, sections, CURRENT_SCORING_VERSION);
+  const score = breakdown.score;
+  const level = breakdown.level;
 
   try {
     const ai = new GoogleGenAI({ apiKey });
@@ -520,9 +501,17 @@ export async function generateAssessment(systemId: string): Promise<AssessmentGe
       queryEmbedding = await withRetry(() => embedRetrievalQuery(ai, retrievalQuery));
     } catch (error) {
       if (getErrorStatus(error) === 429 || errorContainsRateLimit(error)) {
-        return buildRateLimitedFallbackResult(systemId, "embed", error);
+        return buildRateLimitedFallbackResult(systemId, "embed", error, startedAt);
       }
-
+      await logAssessmentRun({
+        systemId,
+        status: "error",
+        stage: "embed",
+        latencyMs: Date.now() - startedAt,
+        scoringVersion: CURRENT_SCORING_VERSION,
+        corpusVersion: CURRENT_CORPUS_VERSION,
+        errorMessage: getErrorMessage(error, "embed failed")
+      });
       return {
         status: "error",
         message: "Assessment generation failed. Please try again.",
@@ -532,8 +521,23 @@ export async function generateAssessment(systemId: string): Promise<AssessmentGe
 
     let retrievedClauses: RetrievedClause[];
     try {
-      retrievedClauses = await retrieveRelevantClauses(queryEmbedding);
+      retrievedClauses = await retrieveRelevantClausesHybrid({
+        queryEmbedding,
+        queryText: retrievalQuery,
+        gapMessages: openGaps.map((gap) => gap.message),
+        corpusVersion: CURRENT_CORPUS_VERSION,
+        topK: 5
+      });
     } catch (error) {
+      await logAssessmentRun({
+        systemId,
+        status: "error",
+        stage: "retrieve",
+        latencyMs: Date.now() - startedAt,
+        scoringVersion: CURRENT_SCORING_VERSION,
+        corpusVersion: CURRENT_CORPUS_VERSION,
+        errorMessage: getErrorMessage(error, "retrieve failed")
+      });
       return {
         status: "error",
         message: "Assessment generation failed. Please try again.",
@@ -542,6 +546,16 @@ export async function generateAssessment(systemId: string): Promise<AssessmentGe
     }
 
     if (retrievedClauses.length === 0) {
+      await logAssessmentRun({
+        systemId,
+        status: "error",
+        stage: "retrieve",
+        latencyMs: Date.now() - startedAt,
+        scoringVersion: CURRENT_SCORING_VERSION,
+        corpusVersion: CURRENT_CORPUS_VERSION,
+        retrievedCount: 0,
+        errorMessage: "No regulation clauses returned"
+      });
       return {
         status: "error",
         message: "No regulation clauses were available for grounding.",
@@ -563,6 +577,7 @@ export async function generateAssessment(systemId: string): Promise<AssessmentGe
       "Do not include markdown fences or extra text.",
       "",
       `Computed readiness score (for narrative context only): ${score}/100 (${level}).`,
+      `Scoring version: ${breakdown.scoringVersion}. Documentation readiness: ${breakdown.documentationReadiness}. Control readiness: ${breakdown.controlReadiness}.`,
       "",
       "System context:",
       JSON.stringify(
@@ -581,7 +596,8 @@ export async function generateAssessment(systemId: string): Promise<AssessmentGe
             versionReleaseIdentifier: system.versionReleaseIdentifier
           },
           answers,
-          openGaps
+          openGaps,
+          obligationCoverage: breakdown.obligations
         },
         null,
         2
@@ -593,7 +609,8 @@ export async function generateAssessment(systemId: string): Promise<AssessmentGe
           articleRef: clause.articleRef,
           title: clause.title,
           text: clause.text,
-          distance: clause.distance
+          distance: clause.distance,
+          hybridScore: clause.hybridScore
         })),
         null,
         2
@@ -616,9 +633,19 @@ export async function generateAssessment(systemId: string): Promise<AssessmentGe
       responseText = response.text;
     } catch (error) {
       if (getErrorStatus(error) === 429 || errorContainsRateLimit(error)) {
-        return buildRateLimitedFallbackResult(systemId, "generate", error);
+        return buildRateLimitedFallbackResult(systemId, "generate", error, startedAt);
       }
-
+      await logAssessmentRun({
+        systemId,
+        status: "error",
+        stage: "generate",
+        latencyMs: Date.now() - startedAt,
+        scoringVersion: CURRENT_SCORING_VERSION,
+        corpusVersion: CURRENT_CORPUS_VERSION,
+        retrievedCount: retrievedClauses.length,
+        retrievalLog: retrievedClauses,
+        errorMessage: getErrorMessage(error, "generate failed")
+      });
       return {
         status: "error",
         message: "Assessment generation failed. Please try again.",
@@ -627,6 +654,16 @@ export async function generateAssessment(systemId: string): Promise<AssessmentGe
     }
 
     if (!responseText) {
+      await logAssessmentRun({
+        systemId,
+        status: "error",
+        stage: "parse",
+        latencyMs: Date.now() - startedAt,
+        scoringVersion: CURRENT_SCORING_VERSION,
+        corpusVersion: CURRENT_CORPUS_VERSION,
+        retrievedCount: retrievedClauses.length,
+        errorMessage: "Empty Gemini response"
+      });
       return {
         status: "error",
         message: "Gemini returned an empty assessment response.",
@@ -639,6 +676,16 @@ export async function generateAssessment(systemId: string): Promise<AssessmentGe
 
     const parsed = parseAssessmentPayload(responseText);
     if (!parsed) {
+      await logAssessmentRun({
+        systemId,
+        status: "error",
+        stage: "parse",
+        latencyMs: Date.now() - startedAt,
+        scoringVersion: CURRENT_SCORING_VERSION,
+        corpusVersion: CURRENT_CORPUS_VERSION,
+        retrievedCount: retrievedClauses.length,
+        errorMessage: "Invalid assessment JSON"
+      });
       return {
         status: "error",
         message: "Could not parse assessment response from Gemini.",
@@ -649,13 +696,20 @@ export async function generateAssessment(systemId: string): Promise<AssessmentGe
       };
     }
 
-    // Fail-closed citation gate: drop recommendations that cite articles
-    // not present in the retrieved clause set.
-    const grounded = filterGroundedRecommendations(
-      parsed.recommendations,
-      retrievedClauses
-    );
+    const grounded = filterGroundedRecommendations(parsed.recommendations, retrievedClauses);
     if (grounded.kept.length === 0) {
+      await logAssessmentRun({
+        systemId,
+        status: "error",
+        stage: "parse",
+        latencyMs: Date.now() - startedAt,
+        scoringVersion: CURRENT_SCORING_VERSION,
+        corpusVersion: CURRENT_CORPUS_VERSION,
+        retrievedCount: retrievedClauses.length,
+        droppedCitations: grounded.dropped.length,
+        retrievalLog: retrievedClauses,
+        errorMessage: "All citations failed groundedness gate"
+      });
       return {
         status: "error",
         message:
@@ -675,24 +729,62 @@ export async function generateAssessment(systemId: string): Promise<AssessmentGe
 
     let assessment: Assessment;
     try {
-      assessment = await prisma.assessment.create({
-        data: {
-          systemId,
-          score,
-          level,
-          summary: parsed.summary,
-          recommendations: JSON.stringify(grounded.kept),
-          confidence,
-          citations: JSON.stringify(
-            retrievedClauses.map((clause) => ({
-              articleRef: clause.articleRef,
-              title: clause.title,
-              distance: clause.distance
-            }))
-          )
-        }
-      });
+      try {
+        assessment = await prisma.assessment.create({
+          data: {
+            systemId,
+            score,
+            level,
+            summary: parsed.summary,
+            recommendations: JSON.stringify(grounded.kept),
+            confidence,
+            citations: JSON.stringify(
+              retrievedClauses.map((clause) => ({
+                articleRef: clause.articleRef,
+                title: clause.title,
+                distance: clause.distance,
+                hybridScore: clause.hybridScore,
+                keywordScore: clause.keywordScore,
+                preferredBoost: clause.preferredBoost
+              }))
+            ),
+            scoringVersion: breakdown.scoringVersion,
+            corpusVersion: CURRENT_CORPUS_VERSION,
+            scoreBreakdown: JSON.stringify(breakdown)
+          }
+        });
+      } catch {
+        // Compatibility path before production schema sync.
+        assessment = await prisma.assessment.create({
+          data: {
+            systemId,
+            score,
+            level,
+            summary: parsed.summary,
+            recommendations: JSON.stringify(grounded.kept),
+            confidence,
+            citations: JSON.stringify(
+              retrievedClauses.map((clause) => ({
+                articleRef: clause.articleRef,
+                title: clause.title,
+                distance: clause.distance
+              }))
+            )
+          }
+        });
+      }
     } catch (error) {
+      await logAssessmentRun({
+        systemId,
+        status: "error",
+        stage: "persist",
+        latencyMs: Date.now() - startedAt,
+        scoringVersion: CURRENT_SCORING_VERSION,
+        corpusVersion: CURRENT_CORPUS_VERSION,
+        retrievedCount: retrievedClauses.length,
+        droppedCitations: grounded.dropped.length,
+        errorMessage: getErrorMessage(error, "persist failed")
+      });
       return {
         status: "error",
         message: "Assessment generation failed. Please try again.",
@@ -700,12 +792,33 @@ export async function generateAssessment(systemId: string): Promise<AssessmentGe
       };
     }
 
+    await logAssessmentRun({
+      systemId,
+      status: "success",
+      stage: "persist",
+      latencyMs: Date.now() - startedAt,
+      scoringVersion: breakdown.scoringVersion,
+      corpusVersion: CURRENT_CORPUS_VERSION,
+      retrievedCount: retrievedClauses.length,
+      droppedCitations: grounded.dropped.length,
+      retrievalLog: retrievedClauses
+    });
+
     return {
       status: "success",
       message: `Assessment generated.${droppedNote}`,
       assessment
     };
   } catch (error) {
+    await logAssessmentRun({
+      systemId,
+      status: "error",
+      stage: "generate",
+      latencyMs: Date.now() - startedAt,
+      scoringVersion: CURRENT_SCORING_VERSION,
+      corpusVersion: CURRENT_CORPUS_VERSION,
+      errorMessage: getErrorMessage(error, "unexpected failure")
+    });
     return {
       status: "error",
       message: "Assessment generation failed. Please try again.",

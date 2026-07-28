@@ -7,6 +7,8 @@ import {
 import { computeReadinessScore, deriveLevel } from "../../lib/assessment";
 import type { GapMetrics } from "../../lib/gaps";
 import { parseSystemCard } from "../../lib/system-card";
+import { computeScoreBreakdown } from "../../lib/scoring";
+import { preferredArticlesForGaps } from "../../lib/obligations";
 import { readFileSync } from "node:fs";
 import { resolve } from "node:path";
 
@@ -72,9 +74,78 @@ describe("computeReadinessScore", () => {
     };
 
     const score = computeReadinessScore(metrics);
-    // 0.5*60 + 0.5*40 - (2*5 + 5*3) = 50 - 25 = 25
     assert.equal(score, 25);
     assert.equal(deriveLevel(score), "Not Ready");
+  });
+});
+
+describe("scoring_v2 obligation coverage", () => {
+  it("produces documentation/control split and obligation rows", () => {
+    const metrics: GapMetrics = {
+      totalRequiredQuestions: 4,
+      answeredRequiredQuestions: 4,
+      totalSections: 4,
+      sectionsWithEvidence: 2,
+      missingEvidenceSections: 2,
+      missingRequiredSections: 0,
+      unansweredQuestions: 0,
+      totalEvidence: 2,
+      staleEvidenceCount: 0
+    };
+
+    const breakdown = computeScoreBreakdown(
+      metrics,
+      [
+        {
+          sectionKey: "human-oversight",
+          title: "Human Oversight",
+          requiredQuestions: 1,
+          answeredRequired: 1,
+          hasEvidence: true,
+          staleEvidence: false
+        },
+        {
+          sectionKey: "data-sources",
+          title: "Data Sources",
+          requiredQuestions: 1,
+          answeredRequired: 1,
+          hasEvidence: false,
+          staleEvidence: false
+        },
+        {
+          sectionKey: "risk-controls",
+          title: "Risk Controls",
+          requiredQuestions: 1,
+          answeredRequired: 1,
+          hasEvidence: true,
+          staleEvidence: false
+        },
+        {
+          sectionKey: "monitoring",
+          title: "Monitoring",
+          requiredQuestions: 1,
+          answeredRequired: 1,
+          hasEvidence: false,
+          staleEvidence: false
+        }
+      ],
+      "scoring_v2"
+    );
+
+    assert.equal(breakdown.scoringVersion, "scoring_v2");
+    assert.ok(breakdown.obligations.length >= 5);
+    assert.ok(breakdown.documentationReadiness >= 0);
+    assert.ok(breakdown.controlReadiness >= 0);
+    assert.ok(breakdown.score >= 0 && breakdown.score <= 100);
+  });
+});
+
+describe("preferredArticlesForGaps", () => {
+  it("boosts oversight articles for oversight gaps", () => {
+    const preferred = preferredArticlesForGaps([
+      "Missing human oversight escalation procedure"
+    ]);
+    assert.ok(preferred.includes("Art 14"));
   });
 });
 
