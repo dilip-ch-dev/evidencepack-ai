@@ -52,6 +52,12 @@
 
 ## Changelog
 
+### 2026-07-28
+
+- Post-merge production verification + polish:
+  - Confirmed production serves demo banner, import UI, `/api/v1/health`, systems API, shareable assessment, and Markdown export.
+  - Pointed README + demo banner at canonical production URLs (removed temporary preview wording).
+
 ### 2026-07-27
 
 - Follow-up hardening after preview verification:
