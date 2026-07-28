@@ -24,13 +24,20 @@ export function AssessmentForm({ systemId }: Props) {
   );
 
   return (
-    <form action={formAction} className="stack-form">
+    <form action={formAction} className="grid gap-3">
       <input type="hidden" name="systemId" value={systemId} />
-      <button type="submit" className="button">
-        Generate Assessment
+      <button
+        type="submit"
+        className="inline-flex items-center justify-center rounded-xl bg-sky-600 px-4 py-3 text-sm font-medium text-white shadow-sm hover:bg-sky-700"
+      >
+        Generate assessment
       </button>
-      {state.status === "error" && <p className="chip incomplete inline-chip">{state.message}</p>}
-      {state.status === "success" && <p className="chip complete inline-chip">{state.message}</p>}
+      {state.status === "error" && (
+        <p className="rounded-xl bg-red-50 px-3 py-2 text-sm text-red-800">{state.message}</p>
+      )}
+      {state.status === "success" && (
+        <p className="rounded-xl bg-emerald-50 px-3 py-2 text-sm text-emerald-800">{state.message}</p>
+      )}
     </form>
   );
 }

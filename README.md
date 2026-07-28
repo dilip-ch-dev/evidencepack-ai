@@ -4,22 +4,25 @@ EvidencePack AI is a **Governance OS for AI systems**: register a system, comple
 
 It does **not** remote-control your model runtime. “Connecting” an AI system means importing its **system/model card and evidence artifacts** (UI or API), then producing reviewable readiness results.
 
-## Live demo
+## Live app
 
 **https://evidencepack-ai.vercel.app**
 
-**Shareable sample assessment:**  
-https://evidencepack-ai.vercel.app/systems/cmn25waj5000zi9wf8335yo9j/assessment
+### Preferred usage flow
 
-**Health:** https://evidencepack-ai.vercel.app/api/v1/health
+1. Open `/systems` in **Live mode**
+2. Paste a **Hugging Face model URL** to create a real system record from public metadata
+3. Review the generated system, fill gaps, and attach more evidence
+4. Run the grounded assessment
+5. Open the shareable assessment page or export the evidence pack
 
-### 5-minute recruiter walkthrough
+### Demo flow
 
-1. Open the seeded **`[SAMPLE DATA] EU HR Screening Assistant`** from the home page banner.
-2. Review open gaps (especially oversight / missing evidence).
-3. Click **Generate assessment** — readiness `score`/`level` are deterministic; recommendations cite retrieved EU AI Act articles.
-4. Open **Shareable assessment** (`/systems/<id>/assessment`) or **Export Markdown Pack**.
-5. Optional: import `examples/system-card.json` (or the Markdown card) via the Import panel / API.
+If you want a recruiter walkthrough instead of a real import:
+
+- Switch `/systems` to **Demo mode**
+- Open the seeded **`[SAMPLE DATA] EU HR Screening Assistant`**
+- Review gaps → generate assessment → open shareable page
 
 ## What it does
 
@@ -27,24 +30,26 @@ https://evidencepack-ai.vercel.app/systems/cmn25waj5000zi9wf8335yo9j/assessment
 - Complete a multi-section questionnaire
 - Attach URL or file evidence by section
 - Auto-detect gaps (unanswered questions, missing/stale evidence)
+- Import a **Hugging Face model URL** into a governance-ready system draft
 - Import a **system card** (JSON or Markdown + YAML frontmatter)
 - Grounded RAG assessment over EU AI Act clauses (pgvector + Gemini)
 - Fail-closed citation gate (recommendations must cite retrieved `articleRef`s)
 - Public JSON API for create / import / evidence / assess
 - Export Markdown evidence packs
 
-## Grounded RAG assessment
+## Grounded assessment stack
 
-- **Ingest:** `scripts/ingest-regulation.ts` chunks `data/eu-ai-act-key-provisions.md` into `RegulationChunk` with 768-dim embeddings
-- **Retrieve:** `lib/assessment.ts` embeds a query and fetches nearest clauses via pgvector
+- **Ingest:** `scripts/ingest-regulation.ts` chunks `data/eu-ai-act-key-provisions.md` into versioned `RegulationChunk`s
+- **Retrieve:** `lib/retrieval.ts` blends vector similarity, keyword overlap, and gap-aware article boosts
 - **Generate:** Gemini returns narrative `summary` + cited `recommendations` only
-- **Score:** `computeReadinessScore` / `deriveLevel` are deterministic from gap metrics
+- **Score:** `scoring_v2` computes obligation coverage + documentation/control readiness
+- **Observe:** `AssessmentRun` stores latency, stage, retrieval count, and dropped citations
 - **Gate:** `lib/citations.ts` drops any recommendation whose citation is not in the retrieved set
 
 ## Quick start
 
 ```bash
-cp .env.example .env   # fill PROD_DATABASE_URL, DIRECT_URL, GEMINI_API_KEY
+cp .env.example .env
 npm install
 npx prisma db push
 npx prisma db seed
@@ -59,53 +64,43 @@ Open http://localhost:3000
 
 ```bash
 npm run typecheck
-npm run test          # unit tests (scoring, citations, system-card parsing)
-npm run eval          # golden citation corpus (offline)
-npm run smoke         # live end-to-end assessment against seeded sample
+npm run test
+npm run eval
+npm run smoke
 ```
 
 ## Connect an existing AI system
 
-### Option A — UI import
+### Option A — Hugging Face URL import (recommended)
 
-Paste a JSON system card or Markdown model card into **Import system card** on `/systems`.
+Paste a public model URL like:
+
+- `https://huggingface.co/mistralai/Mistral-7B-Instruct-v0.3`
+- `mistralai/Mistral-7B-Instruct-v0.3`
+
+EvidencePack will pull public metadata, create a system record, attach model-card evidence links, and draft questionnaire answers.
+
+### Option B — Advanced system-card import
+
+Paste JSON or Markdown model card content into the advanced import accordion on `/systems`.
 
 Examples:
 
 - `examples/system-card.json`
 - `examples/system-card.md`
 
-### Option B — API
-
-If `EVIDENCEPACK_API_KEY` is set on the deployment, send it as `Authorization: Bearer <key>` or `x-api-key`.
+### Option C — API
 
 ```bash
-# Import system card
+# Hugging Face URL import
+curl -sS -X POST https://evidencepack-ai.vercel.app/api/v1/import/huggingface \
+  -H "content-type: application/json" \
+  -d '{"source":"https://huggingface.co/mistralai/Mistral-7B-Instruct-v0.3"}'
+
+# Advanced system-card import
 curl -sS -X POST https://evidencepack-ai.vercel.app/api/v1/import \
   -H "content-type: application/json" \
-  -H "x-api-key: $EVIDENCEPACK_API_KEY" \
   --data-binary @examples/system-card.json
-
-# List systems
-curl -sS https://evidencepack-ai.vercel.app/api/v1/systems
-
-# Attach evidence
-curl -sS -X POST https://evidencepack-ai.vercel.app/api/v1/systems/<systemId>/evidence \
-  -H "content-type: application/json" \
-  -H "x-api-key: $EVIDENCEPACK_API_KEY" \
-  -d '{
-    "title":"Bias report",
-    "description":"Q2 fairness slices",
-    "type":"URL",
-    "sourceUrl":"https://example.com/bias",
-    "sectionKey":"risk-controls",
-    "owner":"Risk Ops",
-    "status":"COMPLETE"
-  }'
-
-# Run assessment
-curl -sS -X POST https://evidencepack-ai.vercel.app/api/v1/systems/<systemId>/assess \
-  -H "x-api-key: $EVIDENCEPACK_API_KEY"
 ```
 
 API surface:
@@ -118,55 +113,15 @@ API surface:
 | GET | `/api/v1/systems/:id` | System detail |
 | POST | `/api/v1/systems/:id/evidence` | Attach evidence |
 | POST | `/api/v1/systems/:id/assess` | Generate grounded assessment |
+| GET | `/api/v1/systems/:id/runs` | Assessment run history |
 | POST | `/api/v1/import` | Import system card |
+| POST | `/api/v1/import/huggingface` | Import from Hugging Face URL |
 | POST | `/api/v1/demo/reset` | Delete non-sample systems (`DEMO_RESET_KEY`) |
-
-## Environment variables
-
-Required:
-
-- `PROD_DATABASE_URL`
-- `DIRECT_URL`
-- `GEMINI_API_KEY`
-
-Optional:
-
-- `GEMINI_MODEL` (default `gemini-2.5-flash`)
-- `GEMINI_EMBED_MODEL` (default `gemini-embedding-001`)
-- `NEXT_PUBLIC_APP_NAME`
-- `EVIDENCEPACK_API_KEY` — protect write APIs in production
-- `DEMO_RESET_KEY` — enable `/api/v1/demo/reset`
-
-## Design decisions (portfolio)
-
-1. **Hybrid scoring:** LLM never owns readiness score/level — metrics do (`scoring_v2` obligation matrix by default).
-2. **Grounded recommendations:** hybrid retrieval (vector + keyword + gap-aware boost) first; fail-closed citation filter second.
-3. **System cards over runtime hooks:** portfolio-honest “connect your AI system” path via docs/evidence import + API.
-4. **Eval before vibes:** offline corpus in `eval/corpus.json` gates citation behavior in CI.
-5. **Observable runs:** `AssessmentRun` stores latency/stage/retrieval logs for glass-box demos.
-6. **Versioned corpus:** regulation chunks carry `corpusVersion` (`eu-ai-act-v2`) so ingest is replace-by-version, not blind wipe.
-
-## After deploy / schema upgrades
-
-Production needs a one-time schema sync + corpus re-ingest when this upgrade lands:
-
-```bash
-npx prisma db push
-node --env-file=.env --import tsx scripts/ingest-regulation.ts
-```
-
-Or locally: `npm run db:push && npm run ingest`
-
-## Stack
-
-- Next.js 14 (App Router) + React 18 + TypeScript
-- Prisma + PostgreSQL / Neon + pgvector
-- Gemini (`@google/genai`) for embeddings + narrative generation
-- Zod validation + Node test runner CI
 
 ## Current limitations
 
 - Single shared workspace (no multi-user auth yet)
-- Regulation corpus is a curated high-risk obligation subset (not the full Official Journal text)
-- File uploads are local/Vercel-filesystem oriented; prefer URL evidence for hosted demos
-- Live smoke test needs DB + Gemini credentials (CI runs offline unit/eval only)
+- No automatic runtime integration with arbitrary private endpoints yet
+- Hugging Face import currently uses public model metadata, not live inference behavior
+- Regulation corpus is curated rather than full-text legislation
+- File uploads are local/Vercel-filesystem oriented; URL evidence is better for hosted demos
