@@ -22,19 +22,32 @@ export function EvidenceForm({ systemId, defaultOwner, sections }: Props) {
   );
 
   return (
-    <form action={formAction} className="stack-form">
+    <form action={formAction} className="grid gap-3">
       <input type="hidden" name="systemId" value={systemId} />
-      <label>
+      <label className="grid gap-1 text-sm text-slate-700">
         Title
-        <input name="title" required />
+        <input
+          className="w-full rounded-xl border border-slate-300 bg-white px-3 py-3 text-sm text-slate-900 shadow-sm focus:outline-none focus:ring-2 focus:ring-slate-400"
+          name="title"
+          required
+        />
       </label>
-      <label>
+      <label className="grid gap-1 text-sm text-slate-700">
         Description
-        <textarea name="description" rows={2} required />
+        <textarea
+          className="w-full rounded-xl border border-slate-300 bg-white px-3 py-3 text-sm text-slate-900 shadow-sm focus:outline-none focus:ring-2 focus:ring-slate-400"
+          name="description"
+          rows={2}
+          required
+        />
       </label>
-      <label>
+      <label className="grid gap-1 text-sm text-slate-700">
         Section
-        <select name="sectionId" defaultValue="">
+        <select
+          className="w-full rounded-xl border border-slate-300 bg-white px-3 py-3 text-sm text-slate-900 shadow-sm focus:outline-none focus:ring-2 focus:ring-slate-400"
+          name="sectionId"
+          defaultValue=""
+        >
           <option value="">Unassigned</option>
           {sections.map((section) => (
             <option key={section.id} value={section.id}>
@@ -43,40 +56,75 @@ export function EvidenceForm({ systemId, defaultOwner, sections }: Props) {
           ))}
         </select>
       </label>
-      <label>
-        Evidence Type
-        <select name="type" defaultValue="URL">
-          <option value="URL">URL</option>
-          <option value="FILE">File</option>
-        </select>
-      </label>
-      <label>
+      <div className="grid gap-3 sm:grid-cols-2">
+        <label className="grid gap-1 text-sm text-slate-700">
+          Evidence Type
+          <select
+            className="w-full rounded-xl border border-slate-300 bg-white px-3 py-3 text-sm text-slate-900 shadow-sm focus:outline-none focus:ring-2 focus:ring-slate-400"
+            name="type"
+            defaultValue="URL"
+          >
+            <option value="URL">URL</option>
+            <option value="FILE">File</option>
+          </select>
+        </label>
+        <label className="grid gap-1 text-sm text-slate-700">
+          Status
+          <select
+            className="w-full rounded-xl border border-slate-300 bg-white px-3 py-3 text-sm text-slate-900 shadow-sm focus:outline-none focus:ring-2 focus:ring-slate-400"
+            name="status"
+            defaultValue="COMPLETE"
+          >
+            <option value="COMPLETE">COMPLETE</option>
+            <option value="INCOMPLETE">INCOMPLETE</option>
+          </select>
+        </label>
+      </div>
+      <label className="grid gap-1 text-sm text-slate-700">
         URL (if type is URL)
-        <input name="sourceUrl" type="url" placeholder="https://..." />
+        <input
+          className="w-full rounded-xl border border-slate-300 bg-white px-3 py-3 text-sm text-slate-900 shadow-sm focus:outline-none focus:ring-2 focus:ring-slate-400"
+          name="sourceUrl"
+          type="url"
+          placeholder="https://..."
+        />
       </label>
-      <label>
+      <label className="grid gap-1 text-sm text-slate-700">
         File (if type is FILE)
-        <input name="file" type="file" />
+        <input
+          className="w-full rounded-xl border border-slate-300 bg-white px-3 py-2 text-sm text-slate-900 shadow-sm focus:outline-none focus:ring-2 focus:ring-slate-400"
+          name="file"
+          type="file"
+        />
       </label>
-      <label>
+      <label className="grid gap-1 text-sm text-slate-700">
         Owner
-        <input name="owner" defaultValue={defaultOwner} required />
+        <input
+          className="w-full rounded-xl border border-slate-300 bg-white px-3 py-3 text-sm text-slate-900 shadow-sm focus:outline-none focus:ring-2 focus:ring-slate-400"
+          name="owner"
+          defaultValue={defaultOwner}
+          required
+        />
       </label>
-      <label>
-        Status
-        <select name="status" defaultValue="COMPLETE">
-          <option value="COMPLETE">COMPLETE</option>
-          <option value="INCOMPLETE">INCOMPLETE</option>
-        </select>
-      </label>
-      <label>
+      <label className="grid gap-1 text-sm text-slate-700">
         Last Reviewed Date
-        <input name="lastReviewedDate" type="date" />
+        <input
+          className="w-full rounded-xl border border-slate-300 bg-white px-3 py-3 text-sm text-slate-900 shadow-sm focus:outline-none focus:ring-2 focus:ring-slate-400"
+          name="lastReviewedDate"
+          type="date"
+        />
       </label>
-      {state.status === "error" && <p className="chip incomplete inline-chip">{state.message}</p>}
-      {state.status === "success" && <p className="chip complete inline-chip">{state.message}</p>}
-      <button type="submit" className="button">
-        Attach Evidence
+      {state.status === "error" && (
+        <p className="rounded-xl bg-red-50 px-3 py-2 text-sm text-red-800">{state.message}</p>
+      )}
+      {state.status === "success" && (
+        <p className="rounded-xl bg-emerald-50 px-3 py-2 text-sm text-emerald-800">{state.message}</p>
+      )}
+      <button
+        type="submit"
+        className="inline-flex rounded-xl bg-slate-900 px-4 py-3 text-sm font-medium text-white hover:bg-slate-800"
+      >
+        Attach evidence
       </button>
     </form>
   );

@@ -6,75 +6,39 @@ type DemoBannerProps = {
 
 export function DemoBanner({ sampleSystemId }: DemoBannerProps) {
   return (
-    <section
-      aria-labelledby="demo-heading"
-      className="rounded-xl border border-sky-200 bg-sky-50 p-6 shadow-sm"
-    >
-      <h2 id="demo-heading" className="text-lg font-semibold text-slate-900">
-        Recruiter / reviewer demo (≈5 minutes)
-      </h2>
-      <p className="mt-2 max-w-3xl text-sm text-slate-700">
-        EvidencePack does not remote-control your model runtime. It turns system
-        metadata, questionnaire answers, and evidence into a grounded EU AI Act
-        readiness assessment with deterministic scoring and cited obligations.
-      </p>
-      <ol className="mt-4 list-decimal space-y-2 pl-5 text-sm text-slate-700">
-        <li>
-          Open the seeded{" "}
-          <strong>[SAMPLE DATA] EU HR Screening Assistant</strong>
-          {sampleSystemId ? (
-            <>
-              {" "}
-              (
-              <Link
-                href={`/systems/${sampleSystemId}`}
-                className="font-medium text-sky-800 underline underline-offset-2"
-              >
-                open demo system
-              </Link>
-              ).
-            </>
-          ) : (
-            " (run seed if missing)."
+    <section className="rounded-3xl border border-sky-200 bg-gradient-to-br from-sky-50 to-white p-6 shadow-sm">
+      <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
+        <div className="max-w-2xl">
+          <p className="text-xs font-semibold uppercase tracking-[0.18em] text-sky-700">
+            Demo mode
+          </p>
+          <h2 className="mt-2 text-2xl font-semibold tracking-tight text-slate-900">
+            Use the seeded workflow only when you want a recruiter-friendly walkthrough.
+          </h2>
+          <p className="mt-3 text-sm leading-relaxed text-slate-700">
+            Demo mode is intentionally preloaded with a high-risk HR screening system so you can
+            show gaps, grounded recommendations, and exports without setup. Real usage should start
+            from a live import or manual system creation in Live mode.
+          </p>
+        </div>
+        <div className="rounded-2xl border border-sky-100 bg-white p-4 text-sm text-slate-700 shadow-sm lg:w-80">
+          <p className="font-medium text-slate-900">Suggested click path</p>
+          <ol className="mt-3 list-decimal space-y-2 pl-4 text-sm">
+            <li>Open the sample system</li>
+            <li>Review gaps and stale evidence</li>
+            <li>Generate assessment</li>
+            <li>Open the shareable assessment page</li>
+          </ol>
+          {sampleSystemId && (
+            <Link
+              href={`/systems/${sampleSystemId}`}
+              className="mt-4 inline-flex rounded-xl bg-sky-600 px-4 py-2 text-sm font-medium text-white hover:bg-sky-700"
+            >
+              Open sample demo
+            </Link>
           )}
-        </li>
-        <li>Review open gaps — unanswered oversight + missing section evidence.</li>
-        <li>
-          Click <strong>Generate assessment</strong> to see score/level plus
-          article-cited recommendations.
-        </li>
-        <li>
-          Export the Markdown evidence pack, or import your own system card below /
-          via <code className="rounded bg-white px-1 py-0.5 text-xs">POST /api/v1/import</code>.
-        </li>
-      </ol>
-      <p className="mt-3 text-xs text-slate-600">
-        Live app:{" "}
-        <a
-          href="https://evidencepack-ai.vercel.app"
-          className="font-medium text-sky-800 underline underline-offset-2"
-          target="_blank"
-          rel="noreferrer"
-        >
-          evidencepack-ai.vercel.app
-        </a>
-        {" · "}
-        <a
-          href="/api/v1/health"
-          className="font-medium text-sky-800 underline underline-offset-2"
-        >
-          /api/v1/health
-        </a>
-        {" · "}
-        <a
-          href="https://evidencepack-ai.vercel.app/systems/cmn25waj5000zi9wf8335yo9j/assessment"
-          className="font-medium text-sky-800 underline underline-offset-2"
-          target="_blank"
-          rel="noreferrer"
-        >
-          shareable sample assessment
-        </a>
-      </p>
+        </div>
+      </div>
     </section>
   );
 }
