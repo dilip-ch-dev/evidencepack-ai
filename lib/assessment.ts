@@ -6,11 +6,9 @@ import {
   type RecommendationWithCitation
 } from "@/lib/citations";
 import { computeGapData } from "@/lib/gaps";
-import {
-  CURRENT_CORPUS_VERSION,
-  CURRENT_SCORING_VERSION
-} from "@/lib/obligations";
+import { CURRENT_CORPUS_VERSION, CURRENT_SCORING_VERSION } from "@/lib/obligations";
 import { prisma } from "@/lib/prisma";
+import { getActiveRulebook } from "@/lib/rulebook";
 import { retrieveRelevantClausesHybrid, type RetrievedClause } from "@/lib/retrieval";
 import {
   computeReadinessScore,
@@ -75,15 +73,15 @@ const ASSESSMENT_RESPONSE_SCHEMA: Schema = {
       type: Type.ARRAY,
       items: {
         type: Type.OBJECT,
-        required: ["text", "articleRef"],
+        required: ["text", "clauseRef"],
         properties: {
           text: {
             type: Type.STRING,
             description: "Actionable recommendation."
           },
-          articleRef: {
+          clauseRef: {
             type: Type.STRING,
-            description: "Exact article reference from retrieved clauses."
+            description: "Exact clause reference copied from the retrieved clauses."
           }
         }
       }
@@ -93,6 +91,40 @@ const ASSESSMENT_RESPONSE_SCHEMA: Schema = {
 
 function stripCodeFences(value: string) {
   return value.replace(/^```(?:json)?\s*/i, "").replace(/\s*```$/, "").trim();
+}
+
+/**
+ * Reads the clause reference from either the current `clauseRef` key or the legacy
+ * `articleRef` key, so assessments persisted before the rulebook refactor still render.
+ */
+function readClauseRef(item: object): string | null {
+  const candidate =
+    "clauseRef" in item
+      ? (item as { clauseRef: unknown }).clauseRef
+      : "articleRef" in item
+        ? (item as { articleRef: unknown }).articleRef
+        : null;
+  if (typeof candidate !== "string") {
+    return null;
+  }
+  const trimmed = candidate.trim();
+  return trimmed || null;
+}
+
+function toRecommendation(item: unknown): RecommendationWithCitation | null {
+  if (!item || typeof item !== "object") {
+    return null;
+  }
+  const textValue = "text" in item ? (item as { text: unknown }).text : null;
+  if (typeof textValue !== "string") {
+    return null;
+  }
+  const text = textValue.trim();
+  const clauseRef = readClauseRef(item);
+  if (!text || !clauseRef) {
+    return null;
+  }
+  return { text, clauseRef };
 }
 
 function getErrorMessage(error: unknown, fallback: string) {
@@ -245,22 +277,7 @@ function parseAssessmentPayload(rawText: string): ParsedAssessment | null {
     }
 
     const recommendations = parsed.recommendations
-      .map((item) => {
-        if (!item || typeof item !== "object") {
-          return null;
-        }
-        const textValue = "text" in item ? item.text : null;
-        const articleRefValue = "articleRef" in item ? item.articleRef : null;
-        if (typeof textValue !== "string" || typeof articleRefValue !== "string") {
-          return null;
-        }
-        const text = textValue.trim();
-        const articleRef = articleRefValue.trim();
-        if (!text || !articleRef) {
-          return null;
-        }
-        return { text, articleRef };
-      })
+      .map((item) => toRecommendation(item))
       .filter((item): item is RecommendationWithCitation => Boolean(item));
 
     if (recommendations.length === 0) {
@@ -286,22 +303,9 @@ export function parseRecommendations(recommendations: string) {
       .map((item) => {
         if (typeof item === "string") {
           const text = item.trim();
-          return text ? { text, articleRef: "Not cited" } : null;
+          return text ? { text, clauseRef: "Not cited" } : null;
         }
-        if (!item || typeof item !== "object") {
-          return null;
-        }
-        const textValue = "text" in item ? item.text : null;
-        const articleRefValue = "articleRef" in item ? item.articleRef : null;
-        if (typeof textValue !== "string" || typeof articleRefValue !== "string") {
-          return null;
-        }
-        const text = textValue.trim();
-        const articleRef = articleRefValue.trim();
-        if (!text || !articleRef) {
-          return null;
-        }
-        return { text, articleRef };
+        return toRecommendation(item);
       })
       .filter((item): item is RecommendationWithCitation => Boolean(item));
   } catch {
@@ -323,36 +327,53 @@ export function parseCitations(citations: string | null) {
         if (!item || typeof item !== "object") {
           return null;
         }
-        const articleRefValue = "articleRef" in item ? item.articleRef : null;
-        const titleValue = "title" in item ? item.title : null;
-        const distanceValue = "distance" in item ? item.distance : null;
-        if (
-          typeof articleRefValue !== "string" ||
-          typeof titleValue !== "string" ||
-          typeof distanceValue !== "number"
-        ) {
+        const clauseRef = readClauseRef(item);
+        const titleValue = "title" in item ? (item as { title: unknown }).title : null;
+        const distanceValue = "distance" in item ? (item as { distance: unknown }).distance : null;
+        if (!clauseRef || typeof titleValue !== "string" || typeof distanceValue !== "number") {
           return null;
         }
         return {
-          articleRef: articleRefValue,
+          clauseRef,
           title: titleValue,
           distance: distanceValue
         };
       })
       .filter(
-        (item): item is { articleRef: string; title: string; distance: number } => Boolean(item)
+        (item): item is { clauseRef: string; title: string; distance: number } => Boolean(item)
       );
   } catch {
     return [];
   }
 }
 
+/**
+ * Parses a persisted score breakdown, backfilling the rulebook-era fields
+ * (`rulebookId`, `familyLabels`, obligation `clauseRef`/`family`) that pre-refactor
+ * rows do not carry, so historical assessments render without a migration.
+ */
 export function parseScoreBreakdown(raw: string | null): ScoreBreakdown | null {
   if (!raw) {
     return null;
   }
   try {
-    return JSON.parse(raw) as ScoreBreakdown;
+    const parsed = JSON.parse(raw) as Omit<Partial<ScoreBreakdown>, "obligations"> & {
+      obligations?: Array<Record<string, unknown>>;
+    };
+    const fallback = getActiveRulebook();
+
+    const obligations = (parsed.obligations ?? []).map((row) => ({
+      ...row,
+      clauseRef: (row.clauseRef ?? row.articleRef ?? "") as string,
+      family: (row.family ?? "control") as ScoreBreakdown["obligations"][number]["family"]
+    })) as ScoreBreakdown["obligations"];
+
+    return {
+      ...parsed,
+      rulebookId: parsed.rulebookId ?? fallback.id,
+      familyLabels: parsed.familyLabels ?? fallback.familyLabels,
+      obligations
+    } as ScoreBreakdown;
   } catch {
     return null;
   }
@@ -473,8 +494,9 @@ export async function generateAssessment(systemId: string): Promise<AssessmentGe
     question: gap.question?.prompt ?? null
   }));
 
+  const rulebook = getActiveRulebook();
   const { metrics, sections } = await computeGapData(systemId);
-  const breakdown = computeScoreBreakdown(metrics, sections, CURRENT_SCORING_VERSION);
+  const breakdown = computeScoreBreakdown(metrics, sections, CURRENT_SCORING_VERSION, rulebook);
   const score = breakdown.score;
   const level = breakdown.level;
 
@@ -525,7 +547,8 @@ export async function generateAssessment(systemId: string): Promise<AssessmentGe
         queryEmbedding,
         queryText: retrievalQuery,
         gapMessages: openGaps.map((gap) => gap.message),
-        corpusVersion: CURRENT_CORPUS_VERSION,
+        corpusVersion: rulebook.id,
+        rulebook,
         topK: 5
       });
     } catch (error) {
@@ -568,10 +591,11 @@ export async function generateAssessment(systemId: string): Promise<AssessmentGe
 
     const weakRetrieval = retrievalIsWeak(retrievedClauses);
     const prompt = [
-      "You are an AI governance reviewer.",
+      `You are reviewing an AI system against ${rulebook.name} (${rulebook.jurisdiction}).`,
       'Return STRICT JSON only with keys: "summary", "recommendations".',
-      "Rules: summary must be 2-3 sentences describing the system's compliance posture.",
-      'Rules: recommendations must be an array of objects with keys "text" and "articleRef"; each recommendation must cite one of the retrieved articleRef values.',
+      "Rules: summary must be 2-3 sentences describing the system's posture against this rulebook.",
+      `Rules: recommendations must be an array of objects with keys "text" and "clauseRef"; each recommendation must cite one of the retrieved clauseRef values verbatim.`,
+      `The rulebook calls each unit a "${rulebook.clauseLabel.singular}".`,
       "Ground every finding in retrieved clauses only. Do not invent citations.",
       "Do not include a numeric score or readiness level; those are computed separately.",
       "Do not include markdown fences or extra text.",
@@ -606,7 +630,7 @@ export async function generateAssessment(systemId: string): Promise<AssessmentGe
       "Retrieved clauses (authoritative grounding context):",
       JSON.stringify(
         retrievedClauses.map((clause) => ({
-          articleRef: clause.articleRef,
+          clauseRef: clause.clauseRef,
           title: clause.title,
           text: clause.text,
           distance: clause.distance,
@@ -696,7 +720,11 @@ export async function generateAssessment(systemId: string): Promise<AssessmentGe
       };
     }
 
-    const grounded = filterGroundedRecommendations(parsed.recommendations, retrievedClauses);
+    const grounded = filterGroundedRecommendations(
+      parsed.recommendations,
+      retrievedClauses,
+      rulebook
+    );
     if (grounded.kept.length === 0) {
       await logAssessmentRun({
         systemId,
@@ -740,7 +768,7 @@ export async function generateAssessment(systemId: string): Promise<AssessmentGe
             confidence,
             citations: JSON.stringify(
               retrievedClauses.map((clause) => ({
-                articleRef: clause.articleRef,
+                clauseRef: clause.clauseRef,
                 title: clause.title,
                 distance: clause.distance,
                 hybridScore: clause.hybridScore,
@@ -749,7 +777,7 @@ export async function generateAssessment(systemId: string): Promise<AssessmentGe
               }))
             ),
             scoringVersion: breakdown.scoringVersion,
-            corpusVersion: CURRENT_CORPUS_VERSION,
+            corpusVersion: rulebook.id,
             scoreBreakdown: JSON.stringify(breakdown)
           }
         });
@@ -765,7 +793,7 @@ export async function generateAssessment(systemId: string): Promise<AssessmentGe
             confidence,
             citations: JSON.stringify(
               retrievedClauses.map((clause) => ({
-                articleRef: clause.articleRef,
+                clauseRef: clause.clauseRef,
                 title: clause.title,
                 distance: clause.distance
               }))

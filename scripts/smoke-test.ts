@@ -6,7 +6,7 @@ import {
   parseCitations,
   parseRecommendations
 } from "@/lib/assessment";
-import { normalizeArticleRef } from "@/lib/citations";
+import { normalizeClauseRef } from "@/lib/citations";
 
 const SYSTEM_NAME = "[SAMPLE DATA] EU HR Screening Assistant";
 
@@ -101,16 +101,16 @@ async function main() {
       const { assessment } = result;
       const citations = parseCitations(assessment.citations);
       const recommendations = parseRecommendations(assessment.recommendations);
-      const allowed = new Set(citations.map((citation) => normalizeArticleRef(citation.articleRef)));
+      const allowed = new Set(citations.map((citation) => normalizeClauseRef(citation.clauseRef)));
 
       if (run === repeatCount) {
-        console.log("\nRetrieved clauses (articleRef — distance) from latest successful run:");
+        console.log("\nRetrieved clauses (clauseRef — distance) from latest successful run:");
         if (citations.length === 0) {
           console.log("  (none)");
         } else {
           for (const clause of citations) {
             console.log(
-              `  - ${clause.articleRef} — ${clause.title} [distance ${fmtDistance(clause.distance)}]`
+              `  - ${clause.clauseRef} — ${clause.title} [distance ${fmtDistance(clause.distance)}]`
             );
           }
         }
@@ -121,12 +121,12 @@ async function main() {
         console.log(`  confidence: ${assessment.confidence ?? "(none)"}`);
         console.log(`  summary:    ${assessment.summary}`);
 
-        console.log("\nRecommendations (articleRef -> text) from latest successful run:");
+        console.log("\nRecommendations (clauseRef -> text) from latest successful run:");
         if (recommendations.length === 0) {
           console.log("  (none)");
         } else {
           recommendations.forEach((rec, index) => {
-            console.log(`  ${index + 1}. [${rec.articleRef || "MISSING"}] ${rec.text}`);
+            console.log(`  ${index + 1}. [${rec.clauseRef || "MISSING"}] ${rec.text}`);
           });
         }
       }
@@ -136,12 +136,12 @@ async function main() {
         recommendationCitationCheckPassed &&
         recommendations.length > 0 &&
         recommendations.every(
-          (rec) => typeof rec.articleRef === "string" && rec.articleRef.trim().length > 0
+          (rec) => typeof rec.clauseRef === "string" && rec.clauseRef.trim().length > 0
         );
       groundedCitationCheckPassed =
         groundedCitationCheckPassed &&
         recommendations.length > 0 &&
-        recommendations.every((rec) => allowed.has(normalizeArticleRef(rec.articleRef)));
+        recommendations.every((rec) => allowed.has(normalizeClauseRef(rec.clauseRef)));
     }
 
     if (run < repeatCount) {

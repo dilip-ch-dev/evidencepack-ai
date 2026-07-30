@@ -1,0 +1,372 @@
+[
+  {
+    "id": "eu-oversight-escalation",
+    "rulebookId": "eu-ai-act-v2",
+    "description": "HR screening system with no documented escalation or override path.",
+    "query": "System: EU Resume Ranker. Business purpose: rank job applicants for recruiters. Risk category: HIGH. Geography: EU. Human oversight: recruiters review a shortlist but no override procedure is written down.",
+    "gapMessages": [
+      "Missing human oversight escalation procedure",
+      "No evidence attached for section: Human Oversight"
+    ],
+    "relevant": ["Art 14"]
+  },
+  {
+    "id": "eu-dataset-provenance",
+    "rulebookId": "eu-ai-act-v2",
+    "description": "Training dataset provenance and bias examination undocumented.",
+    "query": "System: Credit Pre-Screener. Business purpose: score loan applicants. Risk category: HIGH. Model/provider details: gradient boosting trained on historical lending data of unknown origin.",
+    "gapMessages": [
+      "Incomplete dataset provenance documentation",
+      "No bias examination recorded for training data"
+    ],
+    "relevant": ["Art 10"]
+  },
+  {
+    "id": "eu-technical-documentation",
+    "rulebookId": "eu-ai-act-v2",
+    "description": "No technical file assembled before market placement.",
+    "query": "System: Invoice Anomaly Detector. Deployment status: about to be placed on the market in the EU. Version: 1.4.0. No technical documentation has been drawn up describing the development process.",
+    "gapMessages": [
+      "Missing required section responses: System Overview",
+      "No technical documentation or change log maintained"
+    ],
+    "relevant": ["Art 11 + Annex IV"]
+  },
+  {
+    "id": "eu-logging-retention",
+    "rulebookId": "eu-ai-act-v2",
+    "description": "No automatic event logging over the system lifetime.",
+    "query": "System: Biometric Access Gate. Risk category: HIGH. Monitoring: the system does not automatically record events, and there is no audit trail of matches or the reference database used.",
+    "gapMessages": [
+      "No logging or record-keeping capability documented",
+      "No audit trail retained for post-market monitoring"
+    ],
+    "relevant": ["Art 12"]
+  },
+  {
+    "id": "eu-accuracy-robustness",
+    "rulebookId": "eu-ai-act-v2",
+    "description": "Accuracy metrics undeclared and no adversarial resilience testing.",
+    "query": "System: Predictive Maintenance Classifier. Monitoring: accuracy levels are not declared in the instructions for use, and there is no testing for adversarial examples or data poisoning.",
+    "gapMessages": [
+      "No robustness or cybersecurity evidence",
+      "Accuracy metrics not declared"
+    ],
+    "relevant": ["Art 15"]
+  },
+  {
+    "id": "eu-transparency-instructions",
+    "rulebookId": "eu-ai-act-v2",
+    "description": "Deployers receive no instructions for use describing limitations.",
+    "query": "System: Triage Assistant sold to hospital deployers. Intended users: clinical staff. No instructions for use are supplied, so deployers cannot interpret output or learn the system's performance limitations.",
+    "gapMessages": [
+      "No instructions for use provided to deployers",
+      "Known limitations and intended purpose not disclosed"
+    ],
+    "relevant": ["Art 13"]
+  },
+  {
+    "id": "eu-risk-management-process",
+    "rulebookId": "eu-ai-act-v2",
+    "description": "No continuous risk management process or residual risk judgement.",
+    "query": "System: Fraud Scoring Engine. Risk category: HIGH. Risk controls: risks were assessed once at launch; there is no iterative review, no residual risk acceptance, and reasonably foreseeable misuse was not analysed.",
+    "gapMessages": [
+      "No risk management system documented",
+      "Residual risk not assessed and no incident handling process"
+    ],
+    "relevant": ["Art 9"]
+  },
+  {
+    "id": "eu-post-market-monitoring",
+    "rulebookId": "eu-ai-act-v2",
+    "description": "No post-market monitoring plan after deployment.",
+    "query": "System: Demand Forecaster, already in service across the EU. Monitoring: performance data is not collected or analysed after release, so continuous compliance is never evaluated over the lifecycle.",
+    "gapMessages": [
+      "No post-market monitoring plan documented",
+      "Lifecycle performance data not collected"
+    ],
+    "relevant": ["Art 72"]
+  },
+  {
+    "id": "eu-deployer-workplace",
+    "rulebookId": "eu-ai-act-v2",
+    "description": "Workplace deployment without informing workers.",
+    "query": "We are the deployer of a high-risk AI system used to manage shift allocation. Workers and their representatives were not informed before the system was put into use in the workplace, and no fundamental rights impact assessment was performed.",
+    "gapMessages": [
+      "Workers not informed before workplace AI deployment",
+      "No fundamental rights impact assessment"
+    ],
+    "relevant": ["Art 26"]
+  },
+  {
+    "id": "eu-classification-highrisk",
+    "rulebookId": "eu-ai-act-v2",
+    "description": "Unclear whether the system falls in an Annex III high-risk use case.",
+    "query": "System: Candidate Sourcing Tool used for employment and workers' management. We have not determined whether this is an Annex III high-risk use case or whether third-party conformity assessment applies before placing it on the market.",
+    "gapMessages": [
+      "High-risk classification not determined",
+      "Annex III applicability unclear for employment use case"
+    ],
+    "relevant": ["Art 6"]
+  },
+  {
+    "id": "eu-provider-ce-marking",
+    "rulebookId": "eu-ai-act-v2",
+    "description": "Provider obligations around conformity assessment and CE marking unmet.",
+    "query": "As the provider we have not affixed CE marking, have not registered the system, and have no corrective action procedure for when the system is found non-compliant. Contact details do not appear on the documentation.",
+    "gapMessages": [
+      "No CE marking or registration",
+      "No corrective action procedure for non-compliance"
+    ],
+    "relevant": ["Art 16"]
+  },
+  {
+    "id": "eu-quality-management",
+    "rulebookId": "eu-ai-act-v2",
+    "description": "No quality management system proportionate to risk.",
+    "query": "System: Insurance Claim Router. We have no quality management system and no post-market monitoring proportionate to the system's risk, and compliance with Chapter III was not established before putting it into service.",
+    "gapMessages": [
+      "No quality management system in place",
+      "Compliance with requirements not established before service"
+    ],
+    "relevant": ["Art 8"]
+  },
+  {
+    "id": "eu-oversight-and-logging",
+    "rulebookId": "eu-ai-act-v2",
+    "description": "Two distinct gaps in one system — oversight and logging.",
+    "query": "System: Border Screening Assistant. There is no stop button or override path for operators, and the system keeps no automatic record of the period of each use or the reference database checked.",
+    "gapMessages": [
+      "Missing human oversight escalation procedure",
+      "No logging or audit trail retained"
+    ],
+    "relevant": ["Art 14", "Art 12"]
+  },
+  {
+    "id": "eu-data-and-documentation",
+    "rulebookId": "eu-ai-act-v2",
+    "description": "Two distinct gaps — data governance and technical documentation.",
+    "query": "System: Tenant Screening Model. Training data origin is undocumented and not examined for bias, and no technical documentation describes the development process or changes over the lifecycle.",
+    "gapMessages": [
+      "Incomplete dataset provenance documentation",
+      "No technical documentation or change log maintained"
+    ],
+    "relevant": ["Art 10", "Art 11 + Annex IV"]
+  },
+  {
+    "id": "owasp-indirect-injection",
+    "rulebookId": "owasp-llm-top10-v1",
+    "description": "RAG assistant ingests untrusted web content with no injection defence.",
+    "query": "System: Support Copilot. The assistant retrieves customer-supplied documents and web pages and passes them straight into the prompt. There is no separation between trusted system instructions and untrusted retrieved content, and no adversarial testing with injection payloads.",
+    "gapMessages": [
+      "No prompt injection defence for retrieved content",
+      "Untrusted content is concatenated into the system prompt"
+    ],
+    "relevant": ["LLM01"]
+  },
+  {
+    "id": "owasp-cross-tenant-retrieval",
+    "rulebookId": "owasp-llm-top10-v1",
+    "description": "Shared vector index without per-tenant filtering.",
+    "query": "System: Knowledge Assistant. All customers share a single vector index and entitlement filtering is applied to the results after retrieval rather than inside the query, so documents can surface across tenants.",
+    "gapMessages": [
+      "Retrieval does not filter by tenant inside the query",
+      "Shared embedding index across customers"
+    ],
+    "relevant": ["LLM08", "LLM02"]
+  },
+  {
+    "id": "owasp-excessive-agency",
+    "rulebookId": "owasp-llm-top10-v1",
+    "description": "Agent with standing write credentials and no confirmation step.",
+    "query": "System: Ops Agent. The agent holds standing write credentials, chains tool calls without any confirmation, and may retry destructive operations. Tool scopes are broader than the task requires and there is no limit on autonomous steps.",
+    "gapMessages": [
+      "Agent tool permissions exceed least privilege",
+      "No human approval for irreversible actions"
+    ],
+    "relevant": ["LLM06"]
+  },
+  {
+    "id": "owasp-unbounded-cost",
+    "rulebookId": "owasp-llm-top10-v1",
+    "description": "No token or rate limits, unbounded agent iteration.",
+    "query": "System: Research Agent. There is no per-user rate limit, no token quota, and no cap on agent iterations or output length, so a single caller can exhaust the inference budget. Retries are unbounded.",
+    "gapMessages": [
+      "No rate limit or token quota per user",
+      "Unbounded agent iteration and retry"
+    ],
+    "relevant": ["LLM10"]
+  },
+  {
+    "id": "owasp-supply-chain",
+    "rulebookId": "owasp-llm-top10-v1",
+    "description": "Unpinned hosted model and unreviewed adapters from a public hub.",
+    "query": "System: Summarisation Service. We call a hosted model by a floating alias and pull fine-tuned adapters from a public hub without verifying publisher identity, artefact integrity, or licence terms. No inventory of models and datasets exists.",
+    "gapMessages": [
+      "No inventory of third-party models and dependencies",
+      "Model version not pinned and provenance unverified"
+    ],
+    "relevant": ["LLM03"]
+  },
+  {
+    "id": "owasp-output-to-shell",
+    "rulebookId": "owasp-llm-top10-v1",
+    "description": "Generated text passed unvalidated into an interpreter.",
+    "query": "System: Query Builder. Model output is interpolated straight into SQL and shell commands with no schema validation or parameterisation, and any output that fails to parse is repaired and executed anyway.",
+    "gapMessages": [
+      "Model output is not validated before downstream execution",
+      "No sanitisation of generated code"
+    ],
+    "relevant": ["LLM05"]
+  },
+  {
+    "id": "owasp-fabricated-citations",
+    "rulebookId": "owasp-llm-top10-v1",
+    "description": "Answers assert facts with no groundedness check.",
+    "query": "System: Policy Answer Bot. The assistant produces confident answers with fabricated citations and no verification that each claim maps to a retrieved source. Users cannot see the supporting documents and known limitations are undisclosed.",
+    "gapMessages": [
+      "No groundedness verification for generated claims",
+      "Fabricated citations reach the user unmarked"
+    ],
+    "relevant": ["LLM09"]
+  },
+  {
+    "id": "prod-no-eval-set",
+    "rulebookId": "llm-prod-readiness-v1",
+    "description": "Feature ships with no automated evaluation or baseline.",
+    "query": "We are launching an LLM summarisation feature. There is no evaluation set, no recorded baseline, and no metric that would make a regression visible between changes. Nothing runs in continuous integration.",
+    "gapMessages": [
+      "No eval set or golden cases exist",
+      "No baseline recorded so regressions are invisible"
+    ],
+    "relevant": ["PR01"]
+  },
+  {
+    "id": "prod-unpinned-prompt",
+    "rulebookId": "llm-prod-readiness-v1",
+    "description": "Prompts edited outside source control against a floating model alias.",
+    "query": "Prompts are edited in a hosted playground and are not in source control, and the model is called by a floating alias rather than a pinned version, so a provider-side update is indistinguishable from a regression. The version in use cannot be recovered from a trace.",
+    "gapMessages": [
+      "Prompt version not tracked in source control",
+      "Model version not pinned and change management undocumented"
+    ],
+    "relevant": ["PR02"]
+  },
+  {
+    "id": "prod-no-fallback",
+    "rulebookId": "llm-prod-readiness-v1",
+    "description": "No defined behaviour when the provider errors or rate limits.",
+    "query": "When the provider returns a rate limit or a malformed response the feature shows a generic error and retries without distinguishing transient from permanent failures. There is no cached or cheaper fallback path and partial failures leave half-written state.",
+    "gapMessages": [
+      "No fallback or graceful degradation on provider failure",
+      "Retry policy does not distinguish transient errors"
+    ],
+    "relevant": ["PR06"]
+  },
+  {
+    "id": "prod-no-tracing",
+    "rulebookId": "llm-prod-readiness-v1",
+    "description": "Failures logged as one opaque error with no stage attribution.",
+    "query": "Production requests cannot be reconstructed: traces do not capture the retrieved context, the prompt version, token counts, or per-stage latency, and every failure is logged as a single opaque error rather than attributed to a stage.",
+    "gapMessages": [
+      "No tracing or telemetry per pipeline stage",
+      "Failures not attributed to a stage"
+    ],
+    "relevant": ["PR08"]
+  },
+  {
+    "id": "prod-no-rollback",
+    "rulebookId": "llm-prod-readiness-v1",
+    "description": "Changes ship to all traffic with no gate or rehearsed rollback.",
+    "query": "Prompt and model changes go to all users at once. There is no feature flag, no canary fraction, and rollback has never been exercised. Merges are not gated on the evaluation number.",
+    "gapMessages": [
+      "No progressive rollout or feature flag",
+      "Rollback not rehearsed and no regression gate on merge"
+    ],
+    "relevant": ["PR10"]
+  },
+  {
+    "id": "prod-pii-in-prompt",
+    "rulebookId": "llm-prod-readiness-v1",
+    "description": "Personal data enters prompts and logs with no retention limit.",
+    "query": "Customer records including personal data are embedded in prompts and persisted in completion logs with no redaction, no retention limit, and no owner. Provider data-use terms were never checked for training retention.",
+    "gapMessages": [
+      "Personal data not redacted before prompt or log",
+      "No retention limit on prompt and completion logs"
+    ],
+    "relevant": ["PR07"]
+  },
+
+  {
+    "id": "paraphrase-eu-pull-the-plug",
+    "rulebookId": "eu-ai-act-v2",
+    "description": "Paraphrased query in lay language: someone must be able to stop the system.",
+    "query": "Nobody on the team can actually intervene once the tool starts making calls. If it starts behaving badly there is no way for a person to step in and shut it down, and the staff watching it just accept whatever it produces.",
+    "gapMessages": ["Staff cannot intervene once the tool is running"],
+    "relevant": ["Art 14"]
+  },
+  {
+    "id": "paraphrase-eu-bought-a-spreadsheet",
+    "rulebookId": "eu-ai-act-v2",
+    "description": "Paraphrased query: unknown origin of purchased training rows.",
+    "query": "We bought a spreadsheet from a broker and trained on it. We have no idea where the rows came from, whether they represent the people we serve, or whether they skew against any particular group.",
+    "gapMessages": ["Unknown origin of purchased rows used for training"],
+    "relevant": ["Art 10"]
+  },
+  {
+    "id": "paraphrase-eu-auditor-wants-a-folder",
+    "rulebookId": "eu-ai-act-v2",
+    "description": "Paraphrased query: no written description of how the system was built.",
+    "query": "An auditor asked us for a folder describing how the thing was built, what it is for, and what we changed since launch. We have nothing written down and would have to reconstruct it from memory and commit messages.",
+    "gapMessages": ["Nothing written down describing how the system was built"],
+    "relevant": ["Art 11 + Annex IV"]
+  },
+  {
+    "id": "paraphrase-eu-cannot-replay",
+    "rulebookId": "eu-ai-act-v2",
+    "description": "Paraphrased query: cannot reconstruct a past decision.",
+    "query": "When a customer disputes a decision we cannot show what the system saw at the time or what it returned. Nothing is written down automatically as it runs, so we cannot reconstruct any past case.",
+    "gapMessages": ["Cannot reconstruct what the system saw for a past decision"],
+    "relevant": ["Art 12"]
+  },
+  {
+    "id": "paraphrase-eu-gets-worse-and-tampering",
+    "rulebookId": "eu-ai-act-v2",
+    "description": "Paraphrased query: degradation over time plus tampering exposure.",
+    "query": "The tool gets less reliable the longer it runs and we never published how often it is right. We also think someone could feed it crafted junk to change what it answers, and we have no protection against that.",
+    "gapMessages": ["Reliability degrades over time and crafted input can change answers"],
+    "relevant": ["Art 15"]
+  },
+  {
+    "id": "paraphrase-eu-customers-in-the-dark",
+    "rulebookId": "eu-ai-act-v2",
+    "description": "Paraphrased query: downstream customers not told what the tool cannot do.",
+    "query": "The businesses that license our tool have no idea what it cannot do. We never sent them a document explaining how well it performs, when it should not be trusted, or who to contact about it.",
+    "gapMessages": ["Licensees not told what the tool cannot do"],
+    "relevant": ["Art 13"]
+  },
+  {
+    "id": "paraphrase-owasp-pdf-changed-behaviour",
+    "rulebookId": "owasp-llm-top10-v1",
+    "description": "Paraphrased query: uploaded file caused the assistant to ignore its rules.",
+    "query": "A file somebody uploaded contained text that made our assistant ignore the rules we gave it and do something else entirely. We never considered that a document could carry orders.",
+    "gapMessages": ["An uploaded file made the assistant ignore its rules"],
+    "relevant": ["LLM01"]
+  },
+  {
+    "id": "paraphrase-owasp-bot-has-the-keys",
+    "rulebookId": "owasp-llm-top10-v1",
+    "description": "Paraphrased query: automation holds broad production credentials.",
+    "query": "Our automation holds the same credentials a senior engineer would, can delete things, and nobody signs off before it acts. One bad decision by the model and it just goes ahead.",
+    "gapMessages": ["Automation can delete things with nobody signing off"],
+    "relevant": ["LLM06"]
+  },
+  {
+    "id": "paraphrase-prod-nobody-knows-if-worse",
+    "rulebookId": "llm-prod-readiness-v1",
+    "description": "Paraphrased query: no way to tell whether a wording change hurt quality.",
+    "query": "Somebody reworded the instructions last week and we genuinely cannot tell whether the answers got better or worse. We look at a few examples by hand and argue about it.",
+    "gapMessages": ["No way to tell whether a change made answers worse"],
+    "relevant": ["PR01"]
+  }
+]

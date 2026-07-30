@@ -1,0 +1,137 @@
+{
+  "id": "llm-prod-readiness-v1",
+  "name": "LLM Feature Production Readiness Review",
+  "shortName": "LLM Prod Readiness",
+  "jurisdiction": "Internal engineering practice",
+  "sourceNote": "An opinionated internal readiness checklist for shipping an LLM-backed feature. Not a standard; adapt the weights and checks to your own risk appetite.",
+  "clauseLabel": { "singular": "check", "plural": "checks" },
+  "familyLabels": {
+    "documentation": "Specification readiness",
+    "control": "Operational readiness"
+  },
+  "refPrefixAliases": [],
+  "obligations": [
+    {
+      "clauseRef": "PR01",
+      "title": "Offline evaluation coverage",
+      "sectionKeys": ["monitoring", "risk-controls"],
+      "weight": 1.3,
+      "family": "documentation",
+      "aliases": ["PR-01", "PR1"]
+    },
+    {
+      "clauseRef": "PR02",
+      "title": "Prompt and model version control",
+      "sectionKeys": ["change-management", "model-details"],
+      "weight": 1.2,
+      "family": "documentation",
+      "aliases": ["PR-02", "PR2"]
+    },
+    {
+      "clauseRef": "PR03",
+      "title": "Groundedness and citation policy",
+      "sectionKeys": ["intended-purpose", "monitoring"],
+      "weight": 1.2,
+      "family": "documentation",
+      "aliases": ["PR-03", "PR3"]
+    },
+    {
+      "clauseRef": "PR04",
+      "title": "Cost and token budget",
+      "sectionKeys": ["monitoring", "vendor-third-party"],
+      "weight": 1.1,
+      "family": "control",
+      "aliases": ["PR-04", "PR4"]
+    },
+    {
+      "clauseRef": "PR05",
+      "title": "Latency budget and timeouts",
+      "sectionKeys": ["monitoring", "system-overview"],
+      "weight": 1.0,
+      "family": "documentation",
+      "aliases": ["PR-05", "PR5"]
+    },
+    {
+      "clauseRef": "PR06",
+      "title": "Failure behaviour and fallbacks",
+      "sectionKeys": ["incident-handling", "risk-controls"],
+      "weight": 1.2,
+      "family": "control",
+      "aliases": ["PR-06", "PR6"]
+    },
+    {
+      "clauseRef": "PR07",
+      "title": "Sensitive data handling",
+      "sectionKeys": ["data-sources", "security-access"],
+      "weight": 1.2,
+      "family": "control",
+      "aliases": ["PR-07", "PR7"]
+    },
+    {
+      "clauseRef": "PR08",
+      "title": "Observability and tracing",
+      "sectionKeys": ["monitoring", "incident-handling"],
+      "weight": 1.1,
+      "family": "control",
+      "aliases": ["PR-08", "PR8"]
+    },
+    {
+      "clauseRef": "PR09",
+      "title": "Human escalation and override",
+      "sectionKeys": ["human-oversight"],
+      "weight": 1.1,
+      "family": "control",
+      "aliases": ["PR-09", "PR9"]
+    },
+    {
+      "clauseRef": "PR10",
+      "title": "Rollout, rollback, and regression gates",
+      "sectionKeys": ["change-management", "risk-controls"],
+      "weight": 1.2,
+      "family": "control",
+      "aliases": ["PR-10", "PR10:v1"]
+    }
+  ],
+  "gapRouting": [
+    {
+      "pattern": "eval|test set|golden|regression|benchmark|accuracy",
+      "clauseRefs": ["PR01", "PR10"]
+    },
+    {
+      "pattern": "prompt version|model version|pinned|change management|changelog",
+      "clauseRefs": ["PR02"]
+    },
+    {
+      "pattern": "hallucinat|citation|groundedness|source|unsupported claim",
+      "clauseRefs": ["PR03"]
+    },
+    {
+      "pattern": "cost|spend|token budget|quota|billing|rate limit",
+      "clauseRefs": ["PR04"]
+    },
+    {
+      "pattern": "latency|timeout|slow|p95|p99|streaming",
+      "clauseRefs": ["PR05"]
+    },
+    {
+      "pattern": "fallback|degrade|retry|outage|incident|circuit breaker",
+      "clauseRefs": ["PR06"]
+    },
+    {
+      "pattern": "pii|personal data|redact|retention|secret|tenant",
+      "clauseRefs": ["PR07"]
+    },
+    {
+      "pattern": "trace|logging|observab|telemetry|monitor|dashboard",
+      "clauseRefs": ["PR08"]
+    },
+    {
+      "pattern": "escalat|override|human review|approval|oversight",
+      "clauseRefs": ["PR09"]
+    },
+    {
+      "pattern": "rollout|rollback|canary|feature flag|deploy",
+      "clauseRefs": ["PR10"]
+    }
+  ]
+}

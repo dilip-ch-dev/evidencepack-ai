@@ -1,0 +1,74 @@
+{
+  "topK": 5,
+  "gate": {
+    "total": 36,
+    "passed": 36,
+    "byCategory": [
+      {
+        "category": "exact-match",
+        "total": 6,
+        "passed": 6
+      },
+      {
+        "category": "format-variant",
+        "total": 7,
+        "passed": 7
+      },
+      {
+        "category": "alias-folding",
+        "total": 7,
+        "passed": 7
+      },
+      {
+        "category": "fail-closed",
+        "total": 7,
+        "passed": 7
+      },
+      {
+        "category": "adversarial",
+        "total": 6,
+        "passed": 6
+      },
+      {
+        "category": "malformed",
+        "total": 3,
+        "passed": 3
+      }
+    ]
+  },
+  "retrieval": {
+    "cases": 36,
+    "withBoost": {
+      "recall": 0.8889,
+      "precision": 0.1944,
+      "mrr": 0.8485,
+      "hitAtOne": 0.8056
+    },
+    "withoutBoost": {
+      "recall": 0.8889,
+      "precision": 0.1944,
+      "mrr": 0.8485,
+      "hitAtOne": 0.8056
+    }
+  },
+  "rulebooks": [
+    {
+      "id": "eu-ai-act-v2",
+      "obligations": 7,
+      "clauses": 12,
+      "corpusValid": true
+    },
+    {
+      "id": "owasp-llm-top10-v1",
+      "obligations": 10,
+      "clauses": 10,
+      "corpusValid": true
+    },
+    {
+      "id": "llm-prod-readiness-v1",
+      "obligations": 10,
+      "clauses": 10,
+      "corpusValid": true
+    }
+  ]
+}

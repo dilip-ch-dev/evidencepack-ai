@@ -141,14 +141,15 @@ export async function buildMarkdownPack(systemId: string) {
     lines.push(`- Summary: ${latestAssessment.summary}`);
     const breakdown = parseScoreBreakdown(latestAssessment.scoreBreakdown);
     if (breakdown) {
+      lines.push(`- Rulebook: ${breakdown.rulebookId}`);
       lines.push(
-        `- Documentation readiness: ${breakdown.documentationReadiness}; Control readiness: ${breakdown.controlReadiness}`
+        `- ${breakdown.familyLabels.documentation}: ${breakdown.documentationReadiness}; ${breakdown.familyLabels.control}: ${breakdown.controlReadiness}`
       );
       if (breakdown.obligations.length > 0) {
         lines.push("- Obligation coverage:");
         for (const obligation of breakdown.obligations) {
           lines.push(
-            `  - ${obligation.articleRef} (${obligation.status}): ${obligation.score}/100`
+            `  - ${obligation.clauseRef} (${obligation.status}): ${obligation.score}/100`
           );
         }
       }
@@ -159,7 +160,7 @@ export async function buildMarkdownPack(systemId: string) {
     } else {
       lines.push("- Recommendations:");
       for (const recommendation of recommendations) {
-        lines.push(`  - ${recommendation.text} (Article: ${recommendation.articleRef})`);
+        lines.push(`  - ${recommendation.text} (Cites: ${recommendation.clauseRef})`);
       }
     }
 
@@ -170,7 +171,7 @@ export async function buildMarkdownPack(systemId: string) {
       lines.push("- Retrieved Citations:");
       for (const citation of citations) {
         lines.push(
-          `  - ${citation.articleRef} - ${citation.title} (distance: ${citation.distance.toFixed(3)})`
+          `  - ${citation.clauseRef} - ${citation.title} (distance: ${citation.distance.toFixed(3)})`
         );
       }
     }

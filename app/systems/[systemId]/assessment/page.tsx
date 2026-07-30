@@ -108,10 +108,10 @@ export default async function ShareableAssessmentPage({ params }: PageProps) {
           <ul className="mt-3 grid gap-3">
             {recommendations.map((recommendation) => (
               <li
-                key={`${recommendation.articleRef}-${recommendation.text.slice(0, 24)}`}
+                key={`${recommendation.clauseRef}-${recommendation.text.slice(0, 24)}`}
                 className="rounded-lg border border-slate-200 bg-slate-50 p-3 text-sm text-slate-800"
               >
-                <span className="font-medium text-slate-900">[{recommendation.articleRef}]</span>{" "}
+                <span className="font-medium text-slate-900">[{recommendation.clauseRef}]</span>{" "}
                 {recommendation.text}
               </li>
             ))}
@@ -124,8 +124,8 @@ export default async function ShareableAssessmentPage({ params }: PageProps) {
               </h3>
               <ul className="mt-3 grid gap-2 text-sm text-slate-700">
                 {citations.map((citation) => (
-                  <li key={`${citation.articleRef}-${citation.title}`}>
-                    {citation.articleRef} — {citation.title}{" "}
+                  <li key={`${citation.clauseRef}-${citation.title}`}>
+                    {citation.clauseRef} — {citation.title}{" "}
                     <span className="text-xs text-slate-500">
                       (distance {citation.distance.toFixed(4)})
                     </span>

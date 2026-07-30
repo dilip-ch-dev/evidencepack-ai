@@ -218,11 +218,11 @@ export default async function SystemDetailPage({ params }: PageProps) {
                     <div className="mt-4 grid gap-4">
                       <div className="grid gap-3 sm:grid-cols-2">
                         <div className="rounded-xl bg-white p-4">
-                          <p className="text-xs uppercase tracking-wide text-slate-500">Documentation readiness</p>
+                          <p className="text-xs uppercase tracking-wide text-slate-500">{scoreBreakdown.familyLabels.documentation}</p>
                           <p className="mt-1 text-2xl font-semibold text-slate-900">{scoreBreakdown.documentationReadiness}</p>
                         </div>
                         <div className="rounded-xl bg-white p-4">
-                          <p className="text-xs uppercase tracking-wide text-slate-500">Control readiness</p>
+                          <p className="text-xs uppercase tracking-wide text-slate-500">{scoreBreakdown.familyLabels.control}</p>
                           <p className="mt-1 text-2xl font-semibold text-slate-900">{scoreBreakdown.controlReadiness}</p>
                         </div>
                       </div>
@@ -234,9 +234,9 @@ export default async function SystemDetailPage({ params }: PageProps) {
                       {scoreBreakdown.obligations.length > 0 && (
                         <div className="grid gap-2">
                           {scoreBreakdown.obligations.map((obligation) => (
-                            <div key={obligation.articleRef} className="flex flex-wrap items-center justify-between gap-2 rounded-xl border border-slate-200 bg-white px-3 py-3">
+                            <div key={obligation.clauseRef} className="flex flex-wrap items-center justify-between gap-2 rounded-xl border border-slate-200 bg-white px-3 py-3">
                               <div>
-                                <p className="text-sm font-medium text-slate-900">{obligation.articleRef} — {obligation.title}</p>
+                                <p className="text-sm font-medium text-slate-900">{obligation.clauseRef} — {obligation.title}</p>
                                 <p className="text-xs text-slate-500">answers {Math.round(obligation.answerCoverage * 100)}% · evidence {Math.round(obligation.evidenceCoverage * 100)}%</p>
                               </div>
                               <span className="rounded-full bg-slate-100 px-2 py-1 text-xs font-medium text-slate-700">{obligation.score}/100 · {obligation.status}</span>
@@ -252,8 +252,8 @@ export default async function SystemDetailPage({ params }: PageProps) {
                   <h3 className="text-base font-semibold text-slate-900">Recommendations</h3>
                   <ul className="mt-3 grid gap-3">
                     {assessmentRecommendations.map((recommendation) => (
-                      <li key={`${recommendation.articleRef}-${recommendation.text}`} className="rounded-2xl border border-slate-200 bg-slate-50 p-4">
-                        <span className="rounded-full bg-white px-2 py-1 text-xs font-medium text-slate-700 ring-1 ring-slate-200">{recommendation.articleRef}</span>
+                      <li key={`${recommendation.clauseRef}-${recommendation.text}`} className="rounded-2xl border border-slate-200 bg-slate-50 p-4">
+                        <span className="rounded-full bg-white px-2 py-1 text-xs font-medium text-slate-700 ring-1 ring-slate-200">{recommendation.clauseRef}</span>
                         <p className="mt-3 text-sm leading-relaxed text-slate-800">{recommendation.text}</p>
                       </li>
                     ))}
@@ -279,8 +279,8 @@ export default async function SystemDetailPage({ params }: PageProps) {
                     <summary className="cursor-pointer text-sm font-semibold text-slate-900">Retrieved clauses</summary>
                     <ul className="mt-4 grid gap-2">
                       {assessmentCitations.map((citation) => (
-                        <li key={`${citation.articleRef}-${citation.title}`} className="rounded-xl bg-white px-3 py-3 text-sm">
-                          <p className="font-medium text-slate-900">{citation.articleRef} · {citation.title}</p>
+                        <li key={`${citation.clauseRef}-${citation.title}`} className="rounded-xl bg-white px-3 py-3 text-sm">
+                          <p className="font-medium text-slate-900">{citation.clauseRef} · {citation.title}</p>
                           <p className="mt-1 text-xs text-slate-500">distance {citation.distance.toFixed(3)}</p>
                         </li>
                       ))}

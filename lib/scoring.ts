@@ -1,11 +1,10 @@
 import type { GapMetrics } from "@/lib/gaps";
 import {
   CURRENT_SCORING_VERSION,
-  OBLIGATION_CATALOG,
   SCORING_VERSION_V1,
-  SCORING_VERSION_V2,
-  type ObligationDef
+  SCORING_VERSION_V2
 } from "@/lib/obligations";
+import { getActiveRulebook, type ClauseFamily, type ObligationDef, type Rulebook } from "@/lib/rulebook";
 
 const COMPLETION_WEIGHT = 60;
 const EVIDENCE_WEIGHT = 40;
@@ -22,9 +21,10 @@ export type SectionCoverage = {
 };
 
 export type ObligationCoverage = {
-  articleRef: string;
+  clauseRef: string;
   title: string;
   weight: number;
+  family: ClauseFamily;
   sectionKeys: string[];
   answerCoverage: number;
   evidenceCoverage: number;
@@ -34,10 +34,13 @@ export type ObligationCoverage = {
 
 export type ScoreBreakdown = {
   scoringVersion: string;
+  rulebookId: string;
   score: number;
   level: string;
   documentationReadiness: number;
   controlReadiness: number;
+  /** Rulebook-supplied names for the two readiness axes, for display. */
+  familyLabels: { documentation: string; control: string };
   components: {
     questionnaireCompletion: number;
     evidenceCoverage: number;
@@ -88,9 +91,10 @@ function obligationScore(
 
   if (mapped.length === 0) {
     return {
-      articleRef: obligation.articleRef,
+      clauseRef: obligation.clauseRef,
       title: obligation.title,
       weight: obligation.weight,
+      family: obligation.family,
       sectionKeys: obligation.sectionKeys,
       answerCoverage: 0,
       evidenceCoverage: 0,
@@ -110,9 +114,10 @@ function obligationScore(
     score >= 80 ? "covered" : score >= 40 ? "partial" : "missing";
 
   return {
-    articleRef: obligation.articleRef,
+    clauseRef: obligation.clauseRef,
     title: obligation.title,
     weight: obligation.weight,
+    family: obligation.family,
     sectionKeys: obligation.sectionKeys,
     answerCoverage,
     evidenceCoverage,
@@ -127,10 +132,11 @@ function obligationScore(
  */
 export function computeReadinessScoreV2(
   metrics: GapMetrics,
-  sections: SectionCoverage[]
+  sections: SectionCoverage[],
+  rulebook: Rulebook = getActiveRulebook()
 ): ScoreBreakdown {
   const byKey = sectionMaps(sections);
-  const obligations = OBLIGATION_CATALOG.map((obligation) =>
+  const obligations = rulebook.obligations.map((obligation) =>
     obligationScore(obligation, byKey)
   );
 
@@ -138,11 +144,8 @@ export function computeReadinessScoreV2(
   const weighted =
     obligations.reduce((sum, item) => sum + item.score * item.weight, 0) / weightSum;
 
-  const documentationArts = new Set(["Art 11 + Annex IV", "Art 13", "Art 10"]);
-  const controlArts = new Set(["Art 9", "Art 12", "Art 14", "Art 15"]);
-
-  const docs = obligations.filter((item) => documentationArts.has(item.articleRef));
-  const controls = obligations.filter((item) => controlArts.has(item.articleRef));
+  const docs = obligations.filter((item) => item.family === "documentation");
+  const controls = obligations.filter((item) => item.family === "control");
   const avg = (items: ObligationCoverage[]) =>
     items.length === 0
       ? 0
@@ -166,10 +169,12 @@ export function computeReadinessScoreV2(
 
   return {
     scoringVersion: SCORING_VERSION_V2,
+    rulebookId: rulebook.id,
     score,
     level: deriveLevel(score),
     documentationReadiness,
     controlReadiness,
+    familyLabels: rulebook.familyLabels,
     components: {
       questionnaireCompletion: Math.round(completionRatio * 100),
       evidenceCoverage: Math.round(evidenceCoverage * 100),
@@ -183,7 +188,8 @@ export function computeReadinessScoreV2(
 export function computeScoreBreakdown(
   metrics: GapMetrics,
   sections: SectionCoverage[],
-  version: string = CURRENT_SCORING_VERSION
+  version: string = CURRENT_SCORING_VERSION,
+  rulebook: Rulebook = getActiveRulebook()
 ): ScoreBreakdown {
   if (version === SCORING_VERSION_V1) {
     const score = computeReadinessScoreV1(metrics);
@@ -196,10 +202,12 @@ export function computeScoreBreakdown(
 
     return {
       scoringVersion: SCORING_VERSION_V1,
+      rulebookId: rulebook.id,
       score,
       level: deriveLevel(score),
       documentationReadiness: Math.round(completionRatio * 100),
       controlReadiness: Math.round(evidenceCoverage * 100),
+      familyLabels: rulebook.familyLabels,
       components: {
         questionnaireCompletion: Math.round(completionRatio * 100),
         evidenceCoverage: Math.round(evidenceCoverage * 100),
@@ -210,7 +218,7 @@ export function computeScoreBreakdown(
     };
   }
 
-  return computeReadinessScoreV2(metrics, sections);
+  return computeReadinessScoreV2(metrics, sections, rulebook);
 }
 
 /** Back-compat helper used by older call sites/tests. */
