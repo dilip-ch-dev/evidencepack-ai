@@ -54,6 +54,11 @@
 
 ### 2026-07-30
 
+- UI / UX polish for portfolio demos:
+  - Brand landing at `/` (ink + signal teal, Fraunces/Manrope) instead of a bare redirect.
+  - Sticky site header; systems hub decluttered (advanced create collapsed).
+  - System workspace restores PRODUCT_SPEC layout: left section nav + progress, gaps-first main column, always-visible evidence rail.
+  - Shareable assessment page cleaned up as the recruiter handoff artifact.
 - Pluggable rulebook engine (option 23):
   - `lib/rulebook.ts` loads manifests from `rulebooks/<id>/`; shipped EU AI Act, OWASP LLM Top 10, LLM Prod Readiness.
   - Generalized ingest (`scripts/ingest-rulebook.ts`), citation aliases, `clauseRef` rename with legacy `articleRef` read compat.
