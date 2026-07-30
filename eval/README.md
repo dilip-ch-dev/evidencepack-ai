@@ -94,3 +94,21 @@ Both files are plain JSON. A new gate case needs `rulebookId`, `category`, `retr
 `recommendations`, `expectedKept`, and `expectedDroppedCount`. A new golden case needs
 `rulebookId`, `query`, `gapMessages`, and `relevant`. Re-run `npm run eval:report` to
 refresh the snapshot, and commit the diff alongside the change that caused it.
+
+## Failure taxonomy — `eval/annotations.json`
+
+Hard failures already show up in `AssessmentRun.stage`. The interesting defects are the
+ones that *succeed*: a well-formed, fully grounded pack that is nonetheless wrong. Those
+only become visible when someone looks at output and writes down what they saw.
+
+Each observation carries four independent labels — `mode`, `severity`, `fixLocus`, and
+`stage` — so a pile of complaints becomes a fix queue grouped by where the change goes.
+
+| Command | What it does |
+| --- | --- |
+| `npm run taxonomy` | Summarise the labelled corpus and print the open fix queue |
+| `npm run annotate -- --from-eval` | Emit unlabelled candidates from golden-set misses |
+| `npm run annotate -- --from-db` | Emit candidates from thin/failed assessment runs |
+
+`eval/annotation-worksheet.json` is gitignored. Label candidates by hand, then move the
+ones worth keeping into `eval/annotations.json`. Nothing is auto-labelled.

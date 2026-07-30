@@ -17,6 +17,9 @@
     "db:prepare": "prisma db push && prisma db seed",
     "db:seed": "prisma db seed",
     "ingest": "tsx scripts/ingest-rulebook.ts",
+    "diff": "tsx scripts/diff-assessments.ts",
+    "taxonomy": "tsx scripts/taxonomy-report.ts",
+    "annotate": "tsx scripts/annotate-runs.ts",
     "smoke": "tsx scripts/smoke-test.ts",
     "postinstall": "prisma generate"
   },

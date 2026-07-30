@@ -1,6 +1,8 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { parseCitations, parseRecommendations, parseScoreBreakdown } from "@/lib/assessment";
+import { diffAssessments } from "@/lib/assessment-diff";
+import { assessmentToSnapshot } from "@/lib/assessment-history";
 import { recomputeGaps } from "@/lib/gaps";
 import { prisma } from "@/lib/prisma";
 import { AssessmentForm } from "./assessment-form";
@@ -78,6 +80,13 @@ export default async function SystemDetailPage({ params }: PageProps) {
   const assessmentCitations = latestAssessment ? parseCitations(latestAssessment.citations) : [];
   const scoreBreakdown = latestAssessment ? parseScoreBreakdown(latestAssessment.scoreBreakdown) : null;
   const scoreDelta = latestAssessment && previousAssessment ? latestAssessment.score - previousAssessment.score : null;
+  const assessmentDiff =
+    latestAssessment && previousAssessment
+      ? diffAssessments(
+          assessmentToSnapshot(previousAssessment),
+          assessmentToSnapshot(latestAssessment)
+        )
+      : null;
 
   const evidenceBySectionId = new Map<string, typeof system.evidenceItems>();
   for (const evidenceItem of system.evidenceItems) {
@@ -259,6 +268,71 @@ export default async function SystemDetailPage({ params }: PageProps) {
                     ))}
                   </ul>
                 </div>
+
+                {assessmentDiff && (
+                  <details className="rounded-2xl border border-slate-200 bg-slate-50 p-4">
+                    <summary className="cursor-pointer text-sm font-semibold text-slate-900">
+                      What changed since the previous assessment
+                    </summary>
+                    <div className="mt-4 grid gap-4">
+                      <div className="rounded-xl bg-white p-4">
+                        <p className="text-xs uppercase tracking-wide text-slate-500">Why it changed</p>
+                        <ul className="mt-2 grid gap-2">
+                          {assessmentDiff.attributions.map((attribution) => (
+                            <li key={attribution.code} className="text-sm text-slate-700">
+                              <span className="mr-2 rounded-full bg-slate-100 px-2 py-0.5 text-xs font-medium text-slate-700">
+                                {attribution.confidence}
+                              </span>
+                              {attribution.detail}
+                            </li>
+                          ))}
+                        </ul>
+                      </div>
+
+                      <div className="grid gap-2 text-sm text-slate-600">
+                        <p>
+                          Score {assessmentDiff.score.before} → {assessmentDiff.score.after}
+                          {assessmentDiff.level.changed
+                            ? ` · level ${assessmentDiff.level.before} → ${assessmentDiff.level.after}`
+                            : ""}
+                        </p>
+                        <p>
+                          Retrieved clauses: {assessmentDiff.retrieval.added.length} in,{" "}
+                          {assessmentDiff.retrieval.removed.length} out,{" "}
+                          {assessmentDiff.retrieval.reordered.length} reordered (set similarity{" "}
+                          {assessmentDiff.retrieval.setSimilarity.toFixed(2)})
+                        </p>
+                        <p>
+                          Recommendations: {assessmentDiff.recommendations.addedClauseRefs.length} new
+                          citation(s), {assessmentDiff.recommendations.removedClauseRefs.length} dropped,{" "}
+                          {assessmentDiff.recommendations.rewritten.length} rewritten
+                        </p>
+                      </div>
+
+                      {assessmentDiff.obligations.length > 0 && (
+                        <div className="grid gap-2">
+                          {assessmentDiff.obligations.map((row) => (
+                            <div
+                              key={row.clauseRef}
+                              className="flex flex-wrap items-center justify-between gap-2 rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm"
+                            >
+                              <span className="font-medium text-slate-900">{row.clauseRef}</span>
+                              <span className="text-slate-600">
+                                {row.presence === "both"
+                                  ? `${row.scoreBefore} → ${row.scoreAfter}${
+                                      row.statusBefore !== row.statusAfter
+                                        ? ` · ${row.statusBefore} → ${row.statusAfter}`
+                                        : ""
+                                    }`
+                                  : row.presence}
+                              </span>
+                            </div>
+                          ))}
+                        </div>
+                      )}
+                    </div>
+                  </details>
+                )}
 
                 {system.assessments.length > 1 && (
                   <details className="rounded-2xl border border-slate-200 bg-slate-50 p-4">

@@ -52,6 +52,21 @@
 
 ## Changelog
 
+### 2026-07-30
+
+- Pluggable rulebook engine (option 23):
+  - `lib/rulebook.ts` loads manifests from `rulebooks/<id>/`; shipped EU AI Act, OWASP LLM Top 10, LLM Prod Readiness.
+  - Generalized ingest (`scripts/ingest-rulebook.ts`), citation aliases, `clauseRef` rename with legacy `articleRef` read compat.
+- Real evaluation harness (option 24):
+  - Offline gate + retrieval suites (`eval/gate-cases.json`, `eval/retrieval-golden.json`), metrics, ablation, committed snapshot.
+  - Ablation caught a gap-boost demotion of unscored clauses (Art 72); fixed via routing rules + regression guard.
+- Structural assessment diff (option 25):
+  - `lib/assessment-diff.ts` attributes score/recommendation movement to scoring version, corpus, inputs, or model.
+  - CLI (`npm run diff`), API (`GET /api/v1/systems/:id/diff`), system-page UI section.
+- Failure taxonomy (option 26):
+  - `lib/failure-taxonomy.ts` + labeled corpus in `eval/annotations.json`.
+  - `npm run taxonomy` / `npm run annotate` produce a fix queue grouped by where the change goes.
+
 ### 2026-07-28
 
 - Senior ML/systems upgrade pack:

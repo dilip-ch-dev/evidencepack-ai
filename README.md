@@ -1,6 +1,8 @@
 # EvidencePack AI
 
-EvidencePack AI is a **Governance OS for AI systems**: register a system, complete a governance questionnaire, attach evidence, surface gaps, run a grounded EU AI Act readiness assessment, and export an audit-friendly pack.
+EvidencePack AI is a **Governance OS for AI systems**: register a system, complete a governance questionnaire, attach evidence, surface gaps, run a grounded readiness assessment against a pluggable rulebook, and export an audit-friendly pack.
+
+Shipped rulebooks: **EU AI Act**, **OWASP LLM Top 10**, and **LLM Production Readiness**. The default active rulebook is EU AI Act; switching rulebooks switches the scored obligations and the retrieved corpus together.
 
 It does **not** remote-control your model runtime. “Connecting” an AI system means importing its **system/model card and evidence artifacts** (UI or API), then producing reviewable readiness results.
 
@@ -32,19 +34,24 @@ If you want a recruiter walkthrough instead of a real import:
 - Auto-detect gaps (unanswered questions, missing/stale evidence)
 - Import a **Hugging Face model URL** into a governance-ready system draft
 - Import a **system card** (JSON or Markdown + YAML frontmatter)
-- Grounded RAG assessment over EU AI Act clauses (pgvector + Gemini)
-- Fail-closed citation gate (recommendations must cite retrieved `articleRef`s)
-- Public JSON API for create / import / evidence / assess
+- Grounded RAG assessment over pluggable rulebook clauses (pgvector + Gemini)
+- Fail-closed citation gate (recommendations must cite retrieved `clauseRef`s)
+- Structural assessment diff (what changed between runs, and why)
+- Labeled failure taxonomy with an actionable fix queue
+- Public JSON API for create / import / evidence / assess / diff
 - Export Markdown evidence packs
 
 ## Grounded assessment stack
 
-- **Ingest:** `scripts/ingest-regulation.ts` chunks `data/eu-ai-act-key-provisions.md` into versioned `RegulationChunk`s
-- **Retrieve:** `lib/retrieval.ts` blends vector similarity, keyword overlap, and gap-aware article boosts
+- **Rulebooks:** `rulebooks/<id>/rulebook.json` + `clauses.md` — obligations, aliases, gap routing
+- **Ingest:** `npm run ingest -- <rulebookId>` chunks and embeds a rulebook corpus
+- **Retrieve:** `lib/retrieval.ts` blends vector similarity, keyword overlap, and gap-aware clause boosts
 - **Generate:** Gemini returns narrative `summary` + cited `recommendations` only
 - **Score:** `scoring_v2` computes obligation coverage + documentation/control readiness
 - **Observe:** `AssessmentRun` stores latency, stage, retrieval count, and dropped citations
 - **Gate:** `lib/citations.ts` drops any recommendation whose citation is not in the retrieved set
+- **Diff:** `npm run diff` / `GET /api/v1/systems/:id/diff` attributes score movement to scoring, corpus, inputs, or model
+- **Taxonomy:** `npm run taxonomy` turns labeled defects in `eval/annotations.json` into a fix queue
 
 ## Quick start
 
@@ -54,7 +61,7 @@ npm install
 npx prisma db push
 npx prisma db seed
 node --env-file=.env --import tsx scripts/setup-pgvector.ts
-node --env-file=.env --import tsx scripts/ingest-regulation.ts
+npm run ingest -- eu-ai-act-v2
 npm run dev
 ```
 
@@ -66,9 +73,9 @@ Open http://localhost:3000
 npm run typecheck
 npm run test
 npm run eval
+npm run taxonomy
 npm run smoke
 ```
-
 ## Connect an existing AI system
 
 ### Option A — Hugging Face URL import (recommended)
@@ -114,6 +121,7 @@ API surface:
 | POST | `/api/v1/systems/:id/evidence` | Attach evidence |
 | POST | `/api/v1/systems/:id/assess` | Generate grounded assessment |
 | GET | `/api/v1/systems/:id/runs` | Assessment run history |
+| GET | `/api/v1/systems/:id/diff` | Diff the two most recent assessments (or `?from=&to=`) |
 | POST | `/api/v1/import` | Import system card |
 | POST | `/api/v1/import/huggingface` | Import from Hugging Face URL |
 | POST | `/api/v1/demo/reset` | Delete non-sample systems (`DEMO_RESET_KEY`) |
