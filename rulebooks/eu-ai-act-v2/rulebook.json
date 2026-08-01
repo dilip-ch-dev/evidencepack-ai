@@ -1,0 +1,129 @@
+{
+  "id": "eu-ai-act-v2",
+  "name": "EU AI Act — Key Obligations",
+  "shortName": "EU AI Act",
+  "jurisdiction": "European Union",
+  "sourceNote": "Faithful summaries of selected provisions of Regulation (EU) 2024/1689. Consult the published Regulation for authoritative wording.",
+  "clauseLabel": { "singular": "article", "plural": "articles" },
+  "familyLabels": {
+    "documentation": "Documentation readiness",
+    "control": "Control readiness"
+  },
+  "refPrefixAliases": [
+    ["article", "art"],
+    ["articles", "art"]
+  ],
+  "obligations": [
+    {
+      "clauseRef": "Art 9",
+      "title": "Risk management system",
+      "sectionKeys": ["risk-controls", "incident-handling"],
+      "weight": 1.2,
+      "family": "control",
+      "aliases": ["Art 9(1)", "Art 9(2)"]
+    },
+    {
+      "clauseRef": "Art 10",
+      "title": "Data and data governance",
+      "sectionKeys": ["data-sources"],
+      "weight": 1.1,
+      "family": "documentation",
+      "aliases": ["Art 10(2)", "Art 10(3)"]
+    },
+    {
+      "clauseRef": "Art 11 + Annex IV",
+      "title": "Technical documentation",
+      "sectionKeys": [
+        "system-overview",
+        "intended-purpose",
+        "model-details",
+        "change-management"
+      ],
+      "weight": 1.2,
+      "family": "documentation",
+      "aliases": ["Art 11", "Annex IV", "Art 11 and Annex IV", "Art 11 & Annex IV"]
+    },
+    {
+      "clauseRef": "Art 12",
+      "title": "Record-keeping (logging)",
+      "sectionKeys": ["monitoring", "incident-handling"],
+      "weight": 1.0,
+      "family": "control",
+      "aliases": ["Art 12(1)"]
+    },
+    {
+      "clauseRef": "Art 13",
+      "title": "Transparency to deployers",
+      "sectionKeys": ["model-details", "vendor-third-party", "intended-purpose"],
+      "weight": 1.0,
+      "family": "documentation",
+      "aliases": ["Art 13(1)", "Art 13(3)"]
+    },
+    {
+      "clauseRef": "Art 14",
+      "title": "Human oversight",
+      "sectionKeys": ["human-oversight"],
+      "weight": 1.3,
+      "family": "control",
+      "aliases": ["Art 14(1)", "Art 14(4)"]
+    },
+    {
+      "clauseRef": "Art 15",
+      "title": "Accuracy, robustness, and cybersecurity",
+      "sectionKeys": ["monitoring", "security-access"],
+      "weight": 1.1,
+      "family": "control",
+      "aliases": ["Art 15(1)", "Art 15(4)", "Art 15(5)"]
+    }
+  ],
+  "gapRouting": [
+    {
+      "pattern": "oversight|override|stop button|escalat|automation bias",
+      "clauseRefs": ["Art 14"]
+    },
+    {
+      "pattern": "dataset|data source|provenance|bias|training data|labelling|labeling",
+      "clauseRefs": ["Art 10"]
+    },
+    {
+      "pattern": "monitor|drift|logging|log retention|audit trail",
+      "clauseRefs": ["Art 12", "Art 15"]
+    },
+    {
+      "pattern": "risk|incident|residual|misuse",
+      "clauseRefs": ["Art 9"]
+    },
+    {
+      "pattern": "document|technical file|annex|version|change",
+      "clauseRefs": ["Art 11 + Annex IV"]
+    },
+    {
+      "pattern": "accuracy|robust|cyber|adversarial|poisoning",
+      "clauseRefs": ["Art 15"]
+    },
+    {
+      "pattern": "instructions for use|transparen|limitation",
+      "clauseRefs": ["Art 13"]
+    },
+    {
+      "pattern": "post.?market|lifecycle performance|continuous compliance",
+      "clauseRefs": ["Art 72"]
+    },
+    {
+      "pattern": "deployer|workplace|workers|fundamental rights impact|shift",
+      "clauseRefs": ["Art 26", "Art 13"]
+    },
+    {
+      "pattern": "classif|annex iii|high.?risk|conformity assessment|employment",
+      "clauseRefs": ["Art 6"]
+    },
+    {
+      "pattern": "quality management|chapter iii|state of the art|before placing|put into service",
+      "clauseRefs": ["Art 8"]
+    },
+    {
+      "pattern": "ce marking|registration|corrective action|provider obligation|trade name",
+      "clauseRefs": ["Art 16"]
+    }
+  ]
+}

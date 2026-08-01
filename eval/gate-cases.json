@@ -1,0 +1,445 @@
+[
+  {
+    "id": "exact-single",
+    "rulebookId": "eu-ai-act-v2",
+    "category": "exact-match",
+    "description": "A recommendation citing a retrieved ref verbatim is kept.",
+    "retrieved": ["Art 14", "Art 9", "Art 13"],
+    "recommendations": [
+      { "text": "Document override and stop procedures for recruiters.", "clauseRef": "Art 14" }
+    ],
+    "expectedKept": ["Art 14"],
+    "expectedDroppedCount": 0
+  },
+  {
+    "id": "exact-multiple",
+    "rulebookId": "eu-ai-act-v2",
+    "category": "exact-match",
+    "description": "Multiple grounded citations are all kept.",
+    "retrieved": ["Art 10", "Art 11 + Annex IV", "Art 12"],
+    "recommendations": [
+      { "text": "Record dataset provenance and bias testing.", "clauseRef": "Art 10" },
+      { "text": "Keep the technical file current.", "clauseRef": "Art 11 + Annex IV" },
+      { "text": "Retain event logs for the system lifetime.", "clauseRef": "Art 12" }
+    ],
+    "expectedKept": ["Art 10", "Art 11 + Annex IV", "Art 12"],
+    "expectedDroppedCount": 0
+  },
+  {
+    "id": "format-period",
+    "rulebookId": "eu-ai-act-v2",
+    "category": "format-variant",
+    "description": "An abbreviated ref with a period matches.",
+    "retrieved": ["Art 15", "Art 12"],
+    "recommendations": [
+      { "text": "Declare accuracy metrics and adversarial resilience.", "clauseRef": "Art. 15" }
+    ],
+    "expectedKept": ["Art 15"],
+    "expectedDroppedCount": 0
+  },
+  {
+    "id": "format-long-prefix",
+    "rulebookId": "eu-ai-act-v2",
+    "category": "format-variant",
+    "description": "The long-form 'Article' prefix is normalized to the short form.",
+    "retrieved": ["Art 10", "Art 13"],
+    "recommendations": [
+      { "text": "Document training data governance.", "clauseRef": "Article 10" }
+    ],
+    "expectedKept": ["Art 10"],
+    "expectedDroppedCount": 0
+  },
+  {
+    "id": "format-trailing-title",
+    "rulebookId": "eu-ai-act-v2",
+    "category": "format-variant",
+    "description": "A ref with the clause title appended after an em dash matches.",
+    "retrieved": ["Art 14"],
+    "recommendations": [
+      { "text": "Train reviewers on automation bias.", "clauseRef": "Art 14 — Human oversight" }
+    ],
+    "expectedKept": ["Art 14"],
+    "expectedDroppedCount": 0
+  },
+  {
+    "id": "format-trailing-title-hyphen",
+    "rulebookId": "eu-ai-act-v2",
+    "category": "format-variant",
+    "description": "A spaced hyphen separator is treated like an em dash.",
+    "retrieved": ["Art 9"],
+    "recommendations": [
+      { "text": "Review residual risk quarterly.", "clauseRef": "Art 9 - Risk management system" }
+    ],
+    "expectedKept": ["Art 9"],
+    "expectedDroppedCount": 0
+  },
+  {
+    "id": "format-paragraph-suffix",
+    "rulebookId": "eu-ai-act-v2",
+    "category": "format-variant",
+    "description": "A paragraph-level citation resolves to its parent article.",
+    "retrieved": ["Art 15", "Art 9"],
+    "recommendations": [
+      { "text": "Add fail-safe fallback for inference errors.", "clauseRef": "Art 15(4)" }
+    ],
+    "expectedKept": ["Art 15"],
+    "expectedDroppedCount": 0
+  },
+  {
+    "id": "format-uppercase",
+    "rulebookId": "eu-ai-act-v2",
+    "category": "format-variant",
+    "description": "Ref matching is case-insensitive.",
+    "retrieved": ["Art 12"],
+    "recommendations": [
+      { "text": "Define log retention.", "clauseRef": "ART 12" }
+    ],
+    "expectedKept": ["Art 12"],
+    "expectedDroppedCount": 0
+  },
+  {
+    "id": "format-extra-whitespace",
+    "rulebookId": "eu-ai-act-v2",
+    "category": "format-variant",
+    "description": "Collapsed whitespace does not change the match.",
+    "retrieved": ["Art 13"],
+    "recommendations": [
+      { "text": "Ship instructions for use.", "clauseRef": "  Art    13  " }
+    ],
+    "expectedKept": ["Art 13"],
+    "expectedDroppedCount": 0
+  },
+  {
+    "id": "alias-compound-short-form",
+    "rulebookId": "eu-ai-act-v2",
+    "category": "alias-folding",
+    "description": "Citing 'Art 11' when the corpus ref is the compound 'Art 11 + Annex IV' is a naming miss, not a hallucination, so it is kept.",
+    "retrieved": ["Art 11 + Annex IV", "Art 13"],
+    "recommendations": [
+      { "text": "Draw up Annex IV technical documentation.", "clauseRef": "Art 11" }
+    ],
+    "expectedKept": ["Art 11 + Annex IV"],
+    "expectedDroppedCount": 0
+  },
+  {
+    "id": "alias-annex-only",
+    "rulebookId": "eu-ai-act-v2",
+    "category": "alias-folding",
+    "description": "Citing only the annex resolves to the compound obligation.",
+    "retrieved": ["Art 11 + Annex IV"],
+    "recommendations": [
+      { "text": "Complete the Annex IV element list.", "clauseRef": "Annex IV" }
+    ],
+    "expectedKept": ["Art 11 + Annex IV"],
+    "expectedDroppedCount": 0
+  },
+  {
+    "id": "alias-conjunction-variant",
+    "rulebookId": "eu-ai-act-v2",
+    "category": "alias-folding",
+    "description": "'and' instead of '+' in the compound ref still resolves.",
+    "retrieved": ["Art 11 + Annex IV"],
+    "recommendations": [
+      { "text": "Version the technical file.", "clauseRef": "Art 11 and Annex IV" }
+    ],
+    "expectedKept": ["Art 11 + Annex IV"],
+    "expectedDroppedCount": 0
+  },
+  {
+    "id": "alias-not-retrieved",
+    "rulebookId": "eu-ai-act-v2",
+    "category": "fail-closed",
+    "description": "Alias folding must not manufacture grounding: 'Art 11' is dropped when the compound clause was not retrieved.",
+    "retrieved": ["Art 14", "Art 9"],
+    "recommendations": [
+      { "text": "Draw up technical documentation.", "clauseRef": "Art 11" }
+    ],
+    "expectedKept": [],
+    "expectedDroppedCount": 1
+  },
+  {
+    "id": "hallucinated-high-number",
+    "rulebookId": "eu-ai-act-v2",
+    "category": "fail-closed",
+    "description": "An article number that does not exist is dropped.",
+    "retrieved": ["Art 14", "Art 9"],
+    "recommendations": [
+      { "text": "Real finding.", "clauseRef": "Art 14" },
+      { "text": "Invented obligation.", "clauseRef": "Art 99" }
+    ],
+    "expectedKept": ["Art 14"],
+    "expectedDroppedCount": 1
+  },
+  {
+    "id": "hallucinated-absurd-number",
+    "rulebookId": "eu-ai-act-v2",
+    "category": "fail-closed",
+    "description": "An obviously fabricated ref is dropped.",
+    "retrieved": ["Art 26", "Art 14"],
+    "recommendations": [
+      { "text": "Inform workers before workplace deployment.", "clauseRef": "Art 26" },
+      { "text": "Fabricated.", "clauseRef": "Art 9000" }
+    ],
+    "expectedKept": ["Art 26"],
+    "expectedDroppedCount": 1
+  },
+  {
+    "id": "real-article-not-retrieved",
+    "rulebookId": "eu-ai-act-v2",
+    "category": "fail-closed",
+    "description": "A genuine article that was not retrieved is still dropped — the gate tests grounding, not existence.",
+    "retrieved": ["Art 14"],
+    "recommendations": [
+      { "text": "Oversight measures.", "clauseRef": "Art 14" },
+      { "text": "Correct in the abstract but ungrounded here.", "clauseRef": "Art 10" }
+    ],
+    "expectedKept": ["Art 14"],
+    "expectedDroppedCount": 1
+  },
+  {
+    "id": "all-recommendations-ungrounded",
+    "rulebookId": "eu-ai-act-v2",
+    "category": "fail-closed",
+    "description": "When nothing is grounded the gate keeps nothing; the caller is expected to refuse rather than emit an unsupported pack.",
+    "retrieved": ["Art 72"],
+    "recommendations": [
+      { "text": "One.", "clauseRef": "Art 5" },
+      { "text": "Two.", "clauseRef": "Art 50" }
+    ],
+    "expectedKept": [],
+    "expectedDroppedCount": 2
+  },
+  {
+    "id": "near-miss-prefix-collision",
+    "rulebookId": "eu-ai-act-v2",
+    "category": "adversarial",
+    "description": "'Art 1' must not match retrieved 'Art 15' or 'Art 12' by prefix.",
+    "retrieved": ["Art 15", "Art 12"],
+    "recommendations": [
+      { "text": "Prefix collision attempt.", "clauseRef": "Art 1" }
+    ],
+    "expectedKept": [],
+    "expectedDroppedCount": 1
+  },
+  {
+    "id": "near-miss-suffix-collision",
+    "rulebookId": "eu-ai-act-v2",
+    "category": "adversarial",
+    "description": "'Art 5' must not match retrieved 'Art 15' by suffix.",
+    "retrieved": ["Art 15"],
+    "recommendations": [
+      { "text": "Suffix collision attempt.", "clauseRef": "Art 5" }
+    ],
+    "expectedKept": [],
+    "expectedDroppedCount": 1
+  },
+  {
+    "id": "near-miss-annex-wrong-number",
+    "rulebookId": "eu-ai-act-v2",
+    "category": "adversarial",
+    "description": "A compound ref with the wrong annex is not folded into the canonical obligation.",
+    "retrieved": ["Art 11 + Annex IV"],
+    "recommendations": [
+      { "text": "Wrong annex.", "clauseRef": "Art 11 + Annex III" }
+    ],
+    "expectedKept": [],
+    "expectedDroppedCount": 1
+  },
+  {
+    "id": "empty-ref",
+    "rulebookId": "eu-ai-act-v2",
+    "category": "malformed",
+    "description": "An empty ref is dropped rather than treated as a wildcard.",
+    "retrieved": ["Art 14"],
+    "recommendations": [
+      { "text": "No citation supplied.", "clauseRef": "" }
+    ],
+    "expectedKept": [],
+    "expectedDroppedCount": 1
+  },
+  {
+    "id": "punctuation-only-ref",
+    "rulebookId": "eu-ai-act-v2",
+    "category": "malformed",
+    "description": "A ref that normalizes to an empty string is dropped.",
+    "retrieved": ["Art 14"],
+    "recommendations": [
+      { "text": "Dash only.", "clauseRef": "—" }
+    ],
+    "expectedKept": [],
+    "expectedDroppedCount": 1
+  },
+  {
+    "id": "prose-instead-of-ref",
+    "rulebookId": "eu-ai-act-v2",
+    "category": "malformed",
+    "description": "A descriptive phrase in place of a ref is dropped.",
+    "retrieved": ["Art 14"],
+    "recommendations": [
+      { "text": "Cites prose.", "clauseRef": "the human oversight requirements of the Act" }
+    ],
+    "expectedKept": [],
+    "expectedDroppedCount": 1
+  },
+  {
+    "id": "wrong-rulebook-vocabulary",
+    "rulebookId": "eu-ai-act-v2",
+    "category": "adversarial",
+    "description": "A ref borrowed from a different rulebook is dropped.",
+    "retrieved": ["Art 15", "Art 12"],
+    "recommendations": [
+      { "text": "Mitigate prompt injection.", "clauseRef": "LLM01" }
+    ],
+    "expectedKept": [],
+    "expectedDroppedCount": 1
+  },
+  {
+    "id": "duplicate-citation",
+    "rulebookId": "eu-ai-act-v2",
+    "category": "exact-match",
+    "description": "Two recommendations citing the same grounded clause are both kept.",
+    "retrieved": ["Art 9"],
+    "recommendations": [
+      { "text": "Document residual risk acceptance.", "clauseRef": "Art 9" },
+      { "text": "Test against pre-defined thresholds.", "clauseRef": "Art 9" }
+    ],
+    "expectedKept": ["Art 9", "Art 9"],
+    "expectedDroppedCount": 0
+  },
+  {
+    "id": "unscored-but-retrieved-clause",
+    "rulebookId": "eu-ai-act-v2",
+    "category": "exact-match",
+    "description": "A clause in the corpus but not in the scored obligation set is still citable.",
+    "retrieved": ["Art 72", "Art 9"],
+    "recommendations": [
+      { "text": "Establish post-market monitoring.", "clauseRef": "Art 72" }
+    ],
+    "expectedKept": ["Art 72"],
+    "expectedDroppedCount": 0
+  },
+  {
+    "id": "owasp-exact",
+    "rulebookId": "owasp-llm-top10-v1",
+    "category": "exact-match",
+    "description": "The gate works unchanged on a non-regulatory rulebook.",
+    "retrieved": ["LLM01", "LLM06"],
+    "recommendations": [
+      { "text": "Treat retrieved documents as untrusted input.", "clauseRef": "LLM01" },
+      { "text": "Scope agent tool permissions to least privilege.", "clauseRef": "LLM06" }
+    ],
+    "expectedKept": ["LLM01", "LLM06"],
+    "expectedDroppedCount": 0
+  },
+  {
+    "id": "owasp-year-suffix-alias",
+    "rulebookId": "owasp-llm-top10-v1",
+    "category": "alias-folding",
+    "description": "The year-qualified OWASP identifier folds to the base ref.",
+    "retrieved": ["LLM02"],
+    "recommendations": [
+      { "text": "Redact sensitive fields before logging.", "clauseRef": "LLM02:2025" }
+    ],
+    "expectedKept": ["LLM02"],
+    "expectedDroppedCount": 0
+  },
+  {
+    "id": "owasp-unpadded-alias",
+    "rulebookId": "owasp-llm-top10-v1",
+    "category": "alias-folding",
+    "description": "An unpadded number folds to the zero-padded canonical ref.",
+    "retrieved": ["LLM08"],
+    "recommendations": [
+      { "text": "Filter retrieval by tenant inside the query.", "clauseRef": "LLM8" }
+    ],
+    "expectedKept": ["LLM08"],
+    "expectedDroppedCount": 0
+  },
+  {
+    "id": "owasp-title-alias",
+    "rulebookId": "owasp-llm-top10-v1",
+    "category": "alias-folding",
+    "description": "A risk cited by name folds to its identifier.",
+    "retrieved": ["LLM01"],
+    "recommendations": [
+      { "text": "Add injection payloads to the adversarial test set.", "clauseRef": "Prompt Injection" }
+    ],
+    "expectedKept": ["LLM01"],
+    "expectedDroppedCount": 0
+  },
+  {
+    "id": "owasp-near-miss",
+    "rulebookId": "owasp-llm-top10-v1",
+    "category": "adversarial",
+    "description": "'LLM0' must not match any retrieved risk.",
+    "retrieved": ["LLM01", "LLM02"],
+    "recommendations": [
+      { "text": "Truncated identifier.", "clauseRef": "LLM0" }
+    ],
+    "expectedKept": [],
+    "expectedDroppedCount": 1
+  },
+  {
+    "id": "owasp-ungrounded",
+    "rulebookId": "owasp-llm-top10-v1",
+    "category": "fail-closed",
+    "description": "A real risk that was not retrieved is dropped.",
+    "retrieved": ["LLM01"],
+    "recommendations": [
+      { "text": "Cap agent iterations.", "clauseRef": "LLM10" }
+    ],
+    "expectedKept": [],
+    "expectedDroppedCount": 1
+  },
+  {
+    "id": "prod-exact",
+    "rulebookId": "llm-prod-readiness-v1",
+    "category": "exact-match",
+    "description": "The gate works on an internal engineering rulebook.",
+    "retrieved": ["PR01", "PR10"],
+    "recommendations": [
+      { "text": "Record a baseline so regressions are visible.", "clauseRef": "PR01" },
+      { "text": "Gate merges on the eval number.", "clauseRef": "PR10" }
+    ],
+    "expectedKept": ["PR01", "PR10"],
+    "expectedDroppedCount": 0
+  },
+  {
+    "id": "prod-hyphen-alias",
+    "rulebookId": "llm-prod-readiness-v1",
+    "category": "alias-folding",
+    "description": "A hyphenated check id folds to the canonical form, and the bare hyphen is not treated as a title separator.",
+    "retrieved": ["PR07"],
+    "recommendations": [
+      { "text": "Enforce entitlements inside the retrieval query.", "clauseRef": "PR-07" }
+    ],
+    "expectedKept": ["PR07"],
+    "expectedDroppedCount": 0
+  },
+  {
+    "id": "prod-near-miss",
+    "rulebookId": "llm-prod-readiness-v1",
+    "category": "adversarial",
+    "description": "'PR0' must not match retrieved 'PR01'.",
+    "retrieved": ["PR01"],
+    "recommendations": [
+      { "text": "Truncated check id.", "clauseRef": "PR0" }
+    ],
+    "expectedKept": [],
+    "expectedDroppedCount": 1
+  },
+  {
+    "id": "prod-mixed-grounding",
+    "rulebookId": "llm-prod-readiness-v1",
+    "category": "fail-closed",
+    "description": "Grounded and ungrounded recommendations are separated rather than the whole batch being rejected.",
+    "retrieved": ["PR04", "PR08"],
+    "recommendations": [
+      { "text": "Set a per-tenant token quota.", "clauseRef": "PR04" },
+      { "text": "Attribute failures to a pipeline stage.", "clauseRef": "PR08" },
+      { "text": "Ungrounded suggestion.", "clauseRef": "PR99" }
+    ],
+    "expectedKept": ["PR04", "PR08"],
+    "expectedDroppedCount": 1
+  }
+]

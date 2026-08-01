@@ -1,10 +1,21 @@
 import type { Metadata } from "next";
+import { Fraunces, Manrope } from "next/font/google";
 import "./globals.css";
+
+const display = Fraunces({
+  subsets: ["latin"],
+  variable: "--font-display"
+});
+
+const sans = Manrope({
+  subsets: ["latin"],
+  variable: "--font-sans"
+});
 
 export const metadata: Metadata = {
   title: "EvidencePack AI",
   description:
-    "Governance OS for AI systems — evidence packs, gap tracking, and grounded EU AI Act readiness assessments."
+    "Grounded readiness assessments for AI systems — pluggable rulebooks, fail-closed citations, gap tracking, and exportable evidence packs."
 };
 
 export default function RootLayout({
@@ -13,8 +24,8 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="en">
-      <body>{children}</body>
+    <html lang="en" className={`${display.variable} ${sans.variable}`}>
+      <body className="font-sans antialiased">{children}</body>
     </html>
   );
 }

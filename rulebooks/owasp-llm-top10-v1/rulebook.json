@@ -1,0 +1,133 @@
+{
+  "id": "owasp-llm-top10-v1",
+  "name": "OWASP Top 10 for LLM Applications (2025)",
+  "shortName": "OWASP LLM Top 10",
+  "jurisdiction": "Industry framework (not legally binding)",
+  "sourceNote": "Paraphrased summaries of the OWASP Top 10 for LLM Applications, 2025 edition. Consult the OWASP GenAI Security Project for authoritative text.",
+  "clauseLabel": { "singular": "risk", "plural": "risks" },
+  "familyLabels": {
+    "documentation": "Disclosure readiness",
+    "control": "Mitigation readiness"
+  },
+  "refPrefixAliases": [],
+  "obligations": [
+    {
+      "clauseRef": "LLM01",
+      "title": "Prompt Injection",
+      "sectionKeys": ["security-access", "risk-controls"],
+      "weight": 1.3,
+      "family": "control",
+      "aliases": ["LLM01:2025", "LLM1", "Prompt Injection"]
+    },
+    {
+      "clauseRef": "LLM02",
+      "title": "Sensitive Information Disclosure",
+      "sectionKeys": ["data-sources", "security-access"],
+      "weight": 1.2,
+      "family": "control",
+      "aliases": ["LLM02:2025", "LLM2"]
+    },
+    {
+      "clauseRef": "LLM03",
+      "title": "Supply Chain",
+      "sectionKeys": ["vendor-third-party", "model-details"],
+      "weight": 1.1,
+      "family": "documentation",
+      "aliases": ["LLM03:2025", "LLM3"]
+    },
+    {
+      "clauseRef": "LLM04",
+      "title": "Data and Model Poisoning",
+      "sectionKeys": ["data-sources", "model-details"],
+      "weight": 1.1,
+      "family": "control",
+      "aliases": ["LLM04:2025", "LLM4"]
+    },
+    {
+      "clauseRef": "LLM05",
+      "title": "Improper Output Handling",
+      "sectionKeys": ["security-access", "risk-controls"],
+      "weight": 1.2,
+      "family": "control",
+      "aliases": ["LLM05:2025", "LLM5"]
+    },
+    {
+      "clauseRef": "LLM06",
+      "title": "Excessive Agency",
+      "sectionKeys": ["human-oversight", "risk-controls"],
+      "weight": 1.3,
+      "family": "control",
+      "aliases": ["LLM06:2025", "LLM6"]
+    },
+    {
+      "clauseRef": "LLM07",
+      "title": "System Prompt Leakage",
+      "sectionKeys": ["security-access", "change-management"],
+      "weight": 1.0,
+      "family": "documentation",
+      "aliases": ["LLM07:2025", "LLM7"]
+    },
+    {
+      "clauseRef": "LLM08",
+      "title": "Vector and Embedding Weaknesses",
+      "sectionKeys": ["data-sources", "model-details"],
+      "weight": 1.1,
+      "family": "control",
+      "aliases": ["LLM08:2025", "LLM8"]
+    },
+    {
+      "clauseRef": "LLM09",
+      "title": "Misinformation",
+      "sectionKeys": ["monitoring", "intended-purpose"],
+      "weight": 1.1,
+      "family": "documentation",
+      "aliases": ["LLM09:2025", "LLM9"]
+    },
+    {
+      "clauseRef": "LLM10",
+      "title": "Unbounded Consumption",
+      "sectionKeys": ["monitoring", "incident-handling"],
+      "weight": 1.0,
+      "family": "control",
+      "aliases": ["LLM10:2025", "Denial of Wallet"]
+    }
+  ],
+  "gapRouting": [
+    {
+      "pattern": "prompt inject|jailbreak|system prompt|instruction override",
+      "clauseRefs": ["LLM01", "LLM07"]
+    },
+    {
+      "pattern": "pii|sensitive|redact|leak|confidential",
+      "clauseRefs": ["LLM02"]
+    },
+    {
+      "pattern": "vendor|third.?party|dependency|sbom|licence|license",
+      "clauseRefs": ["LLM03"]
+    },
+    {
+      "pattern": "poison|fine.?tun|training data|dataset integrity",
+      "clauseRefs": ["LLM04"]
+    },
+    {
+      "pattern": "output handling|xss|sql|sanitis|sanitiz|downstream",
+      "clauseRefs": ["LLM05"]
+    },
+    {
+      "pattern": "agent|tool call|permission|autonom|oversight|human in the loop",
+      "clauseRefs": ["LLM06"]
+    },
+    {
+      "pattern": "embedding|vector|retrieval|rag|index",
+      "clauseRefs": ["LLM08"]
+    },
+    {
+      "pattern": "hallucinat|groundedness|citation|accuracy|misinformation",
+      "clauseRefs": ["LLM09"]
+    },
+    {
+      "pattern": "cost|rate limit|quota|token budget|latency|denial of service",
+      "clauseRefs": ["LLM10"]
+    }
+  ]
+}

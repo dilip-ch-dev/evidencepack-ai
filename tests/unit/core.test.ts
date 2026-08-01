@@ -2,7 +2,7 @@ import assert from "node:assert/strict";
 import { describe, it } from "node:test";
 import {
   filterGroundedRecommendations,
-  normalizeArticleRef
+  normalizeClauseRef
 } from "../../lib/citations";
 import { computeReadinessScore, deriveLevel } from "../../lib/assessment";
 import type { GapMetrics } from "../../lib/gaps";
@@ -12,12 +12,12 @@ import { preferredArticlesForGaps } from "../../lib/obligations";
 import { readFileSync } from "node:fs";
 import { resolve } from "node:path";
 
-describe("normalizeArticleRef", () => {
+describe("normalizeClauseRef", () => {
   it("normalizes common article formats", () => {
-    assert.equal(normalizeArticleRef("Art 14"), "art 14");
-    assert.equal(normalizeArticleRef("Art. 14"), "art 14");
-    assert.equal(normalizeArticleRef("Article 14"), "art 14");
-    assert.equal(normalizeArticleRef("Art 14 — Human oversight"), "art 14");
+    assert.equal(normalizeClauseRef("Art 14"), "art 14");
+    assert.equal(normalizeClauseRef("Art. 14"), "art 14");
+    assert.equal(normalizeClauseRef("Article 14"), "art 14");
+    assert.equal(normalizeClauseRef("Art 14 — Human oversight"), "art 14");
   });
 });
 
@@ -25,17 +25,17 @@ describe("filterGroundedRecommendations", () => {
   it("keeps only citations present in retrieved clauses", () => {
     const result = filterGroundedRecommendations(
       [
-        { text: "Add oversight stop button", articleRef: "Art 14" },
-        { text: "Invented", articleRef: "Art 99" },
-        { text: "Data governance", articleRef: "Article 10" }
+        { text: "Add oversight stop button", clauseRef: "Art 14" },
+        { text: "Invented", clauseRef: "Art 99" },
+        { text: "Data governance", clauseRef: "Article 10" }
       ],
-      [{ articleRef: "Art 14" }, { articleRef: "Art 10" }]
+      [{ clauseRef: "Art 14" }, { clauseRef: "Art 10" }]
     );
 
     assert.equal(result.kept.length, 2);
     assert.equal(result.dropped.length, 1);
     assert.deepEqual(
-      result.kept.map((item) => normalizeArticleRef(item.articleRef)).sort(),
+      result.kept.map((item) => normalizeClauseRef(item.clauseRef)).sort(),
       ["art 10", "art 14"]
     );
   });

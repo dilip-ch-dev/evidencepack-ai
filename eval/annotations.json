@@ -1,0 +1,102 @@
+[
+  {
+    "id": "obs-001",
+    "source": "eval:retrieval-golden — 4 paraphrase cases",
+    "observedAt": "2026-07-30",
+    "rulebookId": "eu-ai-act-v2",
+    "stage": "retrieve",
+    "mode": "retrieval-miss",
+    "severity": "material",
+    "evidence": "With lexical reranking only, the correct clause falls outside the top 5 on every paraphrased EU case: paraphrase-eu-auditor-wants-a-folder (Art 11 + Annex IV at rank 7), paraphrase-eu-cannot-replay (Art 12 at rank 7), paraphrase-eu-gets-worse-and-tampering (Art 15 at rank 7), paraphrase-eu-customers-in-the-dark (Art 13 at rank 6). All four use lay vocabulary that shares almost no tokens with the clause text. Whether the production vector stage recovers them is not yet measured.",
+    "status": "open",
+    "fixLocus": "retrieval"
+  },
+  {
+    "id": "obs-002",
+    "source": "eval:retrieval-golden — eu-post-market-monitoring, gap-boost ablation",
+    "observedAt": "2026-07-30",
+    "rulebookId": "eu-ai-act-v2",
+    "stage": "retrieve",
+    "mode": "retrieval-rank-inversion",
+    "severity": "material",
+    "evidence": "Art 72 ranked 1st without the gap-aware boost and 4th with it. The boost only reached clauses named in the obligation catalog, so Art 12, Art 15, and Art 11 + Annex IV each gained +0.08 while Art 72 — a corpus clause with no scored obligation — could not. Overall MRR fell 1.000 to 0.972 with the boost enabled.",
+    "status": "fixed",
+    "fixLocus": "rulebook-data",
+    "resolution": "Added gapRouting rules covering the unscored EU clauses (Art 6, 8, 16, 26, 72) in rulebooks/eu-ai-act-v2/rulebook.json. A test in tests/unit/eval-harness.test.ts now asserts the boost can never reduce MRR, recall, or hit@1."
+  },
+  {
+    "id": "obs-003",
+    "source": "code-review — lib/citations.ts normalizeArticleRef, pre-refactor",
+    "observedAt": "2026-07-30",
+    "rulebookId": "eu-ai-act-v2",
+    "stage": "output",
+    "mode": "gate-false-drop",
+    "severity": "material",
+    "evidence": "The canonical corpus ref is the compound 'Art 11 + Annex IV'. A model citing 'Art 11' — a correct, grounded finding under a shorter name — normalized to 'art 11', missed the allowed set, and was silently dropped. The failure was invisible because dropped recommendations were only counted, never inspected.",
+    "status": "fixed",
+    "fixLocus": "gate",
+    "resolution": "Rulebooks declare per-obligation aliases that fold into the canonical ref before comparison. Folding applies only to refs that were actually retrieved, so it cannot manufacture grounding — pinned by the alias-not-retrieved gate case."
+  },
+  {
+    "id": "obs-004",
+    "source": "code-review — lib/citations.ts normalizeArticleRef, pre-refactor",
+    "observedAt": "2026-07-30",
+    "rulebookId": "llm-prod-readiness-v1",
+    "stage": "output",
+    "mode": "gate-false-drop",
+    "severity": "blocking",
+    "evidence": "The old normalizer stripped everything after any hyphen, so 'PR-07' became 'pr' and 'LLM01-Prompt Injection' became 'llm01'. Every citation in a rulebook using hyphenated identifiers would have collapsed to the same token, making the gate both drop correct refs and accept wrong ones.",
+    "status": "fixed",
+    "fixLocus": "gate",
+    "resolution": "normalizeClauseRefBase now truncates only on an em dash, en dash, or spaced hyphen. Regression cases cover PR-07 and LLM01-Prompt in tests/unit/rulebook.test.ts."
+  },
+  {
+    "id": "obs-005",
+    "source": "code-review — rulebooks/eu-ai-act-v2 obligation coverage",
+    "observedAt": "2026-07-30",
+    "rulebookId": "eu-ai-act-v2",
+    "stage": "output",
+    "mode": "obligation-mapping-wrong",
+    "severity": "material",
+    "evidence": "The EU corpus holds 12 clauses but only 7 carry scored obligations. Art 6, 8, 16, 26, and 72 can be retrieved and cited, so a pack can lead with a finding against a clause that contributes nothing to the readiness score. A reader reasonably assumes the score reflects the findings.",
+    "status": "accepted",
+    "fixLocus": "rulebook-data",
+    "resolution": "Deliberate. Widening the catalog would change every scoring_v2 number and break comparison with assessments already stored. The split is now explicit: the ingest script reports unscored clauses, and eval/results/latest.json records obligations and clauses as separate counts. Revisit when a scoring_v3 is warranted."
+  },
+  {
+    "id": "obs-006",
+    "source": "code-review — lib/assessment.ts retrievalIsWeak",
+    "observedAt": "2026-07-30",
+    "rulebookId": "eu-ai-act-v2",
+    "stage": "output",
+    "mode": "summary-overclaim",
+    "severity": "material",
+    "evidence": "When the best retrieval distance exceeds 0.45 the run is marked confidence='low' and otherwise proceeds unchanged. The exported pack is byte-identical to a high-confidence one apart from that field, so a weakly grounded assessment reads with the same authority as a well grounded one.",
+    "status": "open",
+    "fixLocus": "gate"
+  },
+  {
+    "id": "obs-007",
+    "source": "code-review — lib/assessment.ts prompt construction",
+    "observedAt": "2026-07-30",
+    "rulebookId": "eu-ai-act-v2",
+    "stage": "generate",
+    "mode": "summary-overclaim",
+    "severity": "cosmetic",
+    "evidence": "The prompt passes the computed score and readiness level in as 'narrative context only'. Supplying the conclusion alongside a request to describe posture invites the summary to restate the number rather than describe the evidence. Not yet measured against a held-out set with the score withheld.",
+    "status": "open",
+    "fixLocus": "prompt"
+  },
+  {
+    "id": "obs-008",
+    "source": "eval:gate-cases — citation-mismatch coverage",
+    "observedAt": "2026-07-30",
+    "rulebookId": "eu-ai-act-v2",
+    "stage": "output",
+    "mode": "citation-mismatch",
+    "severity": "blocking",
+    "evidence": "The gate verifies that a cited clause was retrieved, not that the clause supports the claim. A recommendation reading 'encrypt data at rest' citing Art 14 (human oversight) passes every check in the pipeline. No case in eval/gate-cases.json can detect this, because detecting it requires judging meaning rather than membership.",
+    "status": "open",
+    "fixLocus": "eval-harness"
+  }
+]
