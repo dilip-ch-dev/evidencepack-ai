@@ -1,6 +1,6 @@
-# EvidencePack AI
+# Truecite
 
-EvidencePack AI is a **Governance OS for AI systems**: register a system, complete a governance questionnaire, attach evidence, surface gaps, run a grounded readiness assessment against a pluggable rulebook, and export an audit-friendly pack.
+Truecite is a **governance workspace for AI systems**: register a system, complete a questionnaire, attach evidence, surface gaps, run a grounded readiness assessment against a pluggable rulebook, and export an audit-friendly pack.
 
 Shipped rulebooks: **EU AI Act**, **OWASP LLM Top 10**, and **LLM Production Readiness**. The default active rulebook is EU AI Act; switching rulebooks switches the scored obligations and the retrieved corpus together.
 
@@ -9,6 +9,8 @@ It does **not** remote-control your model runtime. “Connecting” an AI system
 ## Live app
 
 **https://evidencepack-ai.vercel.app**
+
+> Brand is **Truecite**. The Vercel hostname may still say `evidencepack-ai` until the project alias is updated — the product UI is Truecite either way.
 
 ### Preferred usage flow
 
@@ -76,6 +78,7 @@ npm run eval
 npm run taxonomy
 npm run smoke
 ```
+
 ## Connect an existing AI system
 
 ### Option A — Hugging Face URL import (recommended)
@@ -85,7 +88,7 @@ Paste a public model URL like:
 - `https://huggingface.co/mistralai/Mistral-7B-Instruct-v0.3`
 - `mistralai/Mistral-7B-Instruct-v0.3`
 
-EvidencePack will pull public metadata, create a system record, attach model-card evidence links, and draft questionnaire answers.
+Truecite will pull public metadata, create a system record, attach model-card evidence links, and draft questionnaire answers.
 
 ### Option B — Advanced system-card import
 

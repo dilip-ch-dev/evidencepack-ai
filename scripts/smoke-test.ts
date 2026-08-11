@@ -50,7 +50,7 @@ async function main() {
   const repeatCount = resolveRepeatCount();
   const checks: Check[] = [];
   console.log("=".repeat(72));
-  console.log("EvidencePack AI — Grounded Assessment Smoke Test");
+  console.log("Truecite — Grounded Assessment Smoke Test");
   console.log(`System under test: ${SYSTEM_NAME}`);
   console.log(`Repeat count: ${repeatCount}`);
   console.log("=".repeat(72));

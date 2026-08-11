@@ -17,15 +17,7 @@ export function SiteHeader({ variant = "light" }: SiteHeaderProps) {
               dark ? "text-paper-50" : "text-ink-900"
             ].join(" ")}
           >
-            EvidencePack
-          </span>
-          <span
-            className={[
-              "text-[0.65rem] font-semibold uppercase tracking-[0.22em]",
-              dark ? "text-signal-200/80" : "text-signal-700"
-            ].join(" ")}
-          >
-            AI
+            Truecite
           </span>
         </Link>
         <nav className="flex flex-wrap items-center gap-2 text-sm">

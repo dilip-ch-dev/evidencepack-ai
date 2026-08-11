@@ -20,8 +20,7 @@ export default async function HomePage() {
           Governance evidence for AI systems
         </p>
         <h1 className="animate-rise-delay font-display text-5xl leading-[1.05] tracking-tight text-paper-50 sm:text-6xl md:text-7xl">
-          EvidencePack
-          <span className="block text-signal-200">AI</span>
+          Truecite
         </h1>
         <p className="animate-rise-delay-2 max-w-xl text-base leading-relaxed text-slate-300 sm:text-lg">
           Import a model, surface the gaps, and generate a readiness pack grounded in a

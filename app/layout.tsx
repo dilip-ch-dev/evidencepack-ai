@@ -13,7 +13,7 @@ const sans = Manrope({
 });
 
 export const metadata: Metadata = {
-  title: "EvidencePack AI",
+  title: "Truecite",
   description:
     "Grounded readiness assessments for AI systems — pluggable rulebooks, fail-closed citations, gap tracking, and exportable evidence packs."
 };

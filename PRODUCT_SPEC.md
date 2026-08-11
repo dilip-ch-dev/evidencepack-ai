@@ -1,7 +1,6 @@
-# Product Spec — EvidencePack AI
+# Product Spec — Truecite
 
-## One-line product definition
-EvidencePack AI is a web app that helps organizations generate and maintain audit-ready documentation and evidence packs for individual AI systems under the EU AI Act and ISO/IEC 42001.
+Truecite is a web app that helps organizations generate and maintain audit-ready documentation and evidence packs for individual AI systems under the EU AI Act and ISO/IEC 42001.
 
 ## Core promise
 Turn one AI system into a structured, reviewable evidence pack with:

@@ -50,7 +50,7 @@ export async function buildMarkdownPack(systemId: string) {
   const lines: string[] = [];
   const generatedAt = new Date();
 
-  lines.push("# EvidencePack AI Export");
+  lines.push("# Truecite Export");
   lines.push("");
   lines.push("## Cover Page");
   lines.push(`- Workspace: ${system.workspace.name}`);
