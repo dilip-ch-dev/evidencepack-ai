@@ -3,9 +3,14 @@ import { getSessionIdHash } from "@/lib/session";
 
 export const DEMO_WORKSPACE_ID = "sample-workspace-id";
 
+export async function getPrimaryWorkspace() {
+  const sessionIdHash = getSessionIdHash();
+  return prisma.workspace.findUnique({ where: { sessionIdHash } });
+}
+
 export async function getOrCreatePrimaryWorkspace() {
   const sessionIdHash = getSessionIdHash();
-  const existingWorkspace = await prisma.workspace.findUnique({ where: { sessionIdHash } });
+  const existingWorkspace = await getPrimaryWorkspace();
 
   if (existingWorkspace) {
     return existingWorkspace;
