@@ -1,11 +1,10 @@
 "use server";
 
-import { mkdir, writeFile } from "fs/promises";
-import path from "path";
 import { EvidenceType } from "@/lib/db-enums";
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { recomputeGaps } from "@/lib/gaps";
+import { requireOwnedSystem } from "@/lib/authorization";
 import { prisma } from "@/lib/prisma";
 import { createEvidenceSchema, createSystemSchema, saveAnswerSchema } from "@/lib/validation";
 import { getOrCreatePrimaryWorkspace } from "@/lib/workspace";
@@ -93,6 +92,7 @@ export async function saveAnswerAction(
   }
 
   try {
+    await requireOwnedSystem(parsed.data.systemId);
     await prisma.answer.upsert({
       where: {
         systemId_questionId: {
@@ -145,30 +145,15 @@ export async function createEvidenceAction(
   }
 
   try {
+    await requireOwnedSystem(parsed.data.systemId);
     let filePath: string | null = null;
     let sourceUrl: string | null = parsed.data.sourceUrl || null;
 
     if (parsed.data.type === EvidenceType.FILE) {
-      const file = formData.get("file");
-      if (!(file instanceof File) || file.size === 0) {
-        return {
-          status: "error",
-          message: "File evidence requires an uploaded file."
-        };
-      }
-
-      const uploadDir = path.join(process.cwd(), "public", "uploads");
-      await mkdir(uploadDir, { recursive: true });
-
-      const safeOriginalName = file.name.replace(/[^a-zA-Z0-9._-]/g, "_");
-      const diskFileName = `${Date.now()}-${safeOriginalName}`;
-      const diskPath = path.join(uploadDir, diskFileName);
-
-      const bytes = Buffer.from(await file.arrayBuffer());
-      await writeFile(diskPath, bytes);
-
-      filePath = `/uploads/${diskFileName}`;
-      sourceUrl = null;
+      return {
+        status: "error",
+        message: "Private file storage is not enabled. Attach an HTTPS evidence link instead."
+      };
     }
 
     if (parsed.data.type === EvidenceType.URL && !sourceUrl) {

@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { requireApiKey } from "@/lib/api-auth";
 import { buildSystemCardFromHuggingFace } from "@/lib/huggingface";
 import { importSystemCard } from "@/lib/services/systems";
+import { enforceRateLimit, RateLimitExceededError } from "@/lib/rate-limit";
 
 export const dynamic = "force-dynamic";
 
@@ -12,6 +13,7 @@ export async function POST(request: Request) {
   }
 
   try {
+    await enforceRateLimit("huggingface-import", 10, 10 * 60 * 1000);
     const body = (await request.json()) as { source?: unknown };
     const source = typeof body?.source === "string" ? body.source : "";
     if (!source.trim()) {
@@ -34,6 +36,12 @@ export async function POST(request: Request) {
       { status: 201 }
     );
   } catch (error) {
+    if (error instanceof RateLimitExceededError) {
+      return NextResponse.json(
+        { error: "Rate limit exceeded", message: error.message },
+        { status: 429, headers: { "Retry-After": String(error.retryAfterSeconds) } }
+      );
+    }
     return NextResponse.json(
       {
         error: "Hugging Face import failed",

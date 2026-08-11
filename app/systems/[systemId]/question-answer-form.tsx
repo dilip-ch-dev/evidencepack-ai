@@ -3,6 +3,7 @@
 import { useFormState } from "react-dom";
 import { saveAnswerAction } from "../actions";
 import { initialActionState, type ActionState } from "../action-state";
+import { SubmitButton } from "@/app/components/submit-button";
 
 type Props = {
   systemId: string;
@@ -56,12 +57,9 @@ export function QuestionAnswerForm({
         )}
       </div>
       <div className="flex justify-end">
-        <button
-          type="submit"
-          className="inline-flex rounded-xl border border-slate-300 bg-white px-4 py-2 text-sm font-medium text-slate-900 hover:bg-slate-50"
-        >
+        <SubmitButton pendingLabel="Saving…" className="inline-flex rounded-xl border border-slate-300 bg-white px-4 py-2 text-sm font-medium text-slate-900 hover:bg-slate-50">
           Save response
-        </button>
+        </SubmitButton>
       </div>
     </form>
   );

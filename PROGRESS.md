@@ -1,5 +1,7 @@
 # PROGRESS
 
+> Public engineering log. Older entries describe the state at the time they were written and are intentionally retained as history; `README.md`, the current schema, tests, and CI are authoritative for present behavior. Reviewed 2026-08-11: no secrets or private conversation transcripts are present.
+
 ## Architecture
 
 - **App stack:** Next.js 14 App Router, React 18, TypeScript, Server Actions.
@@ -51,6 +53,17 @@
 - Verify the end-to-end RAG pipeline with a CLI smoke test (`npm run smoke`).
 
 ## Changelog
+
+### 2026-08-11
+
+- Added opaque browser-session workspace isolation and ownership checks across pages, APIs, server actions, assessment history, and exports; retained the curated demo as a shared read-only workspace.
+- Added database-backed rate limits for assessment generation and both import paths.
+- Replaced reference-only narrative gating with fail-closed prose grounding: summaries and recommendations require a retrieved clause reference plus a verbatim supporting quote found in that clause.
+- Restricted evidence URLs to HTTP(S), bounded imported text/card sizes, and disabled hosted file uploads until private object storage exists.
+- Removed database writes from detail-page rendering and download GETs; added friendly error/not-found pages.
+- Added a five-stage workflow stepper, action-specific pending states, clearer questionnaire-vs-readiness labeling, actionable gaps, a How-it-works page, legal pages, responsive/mobile fixes, and reduced-motion support.
+- Added metadata, favicon, generated social card, security headers, a production build gate, committed-eval verification, migration SQL, and an MIT license.
+- Documented the negative ablation honestly: gap-aware boost and no-boost retrieval metrics remain identical on the committed 36-case golden set.
 
 ### 2026-08-10
 

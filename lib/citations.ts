@@ -8,10 +8,14 @@ import {
 export type RecommendationWithCitation = {
   text: string;
   clauseRef: string;
+  evidenceQuote?: string;
 };
+
+export type GroundedClaim = RecommendationWithCitation & { evidenceQuote: string };
 
 export type RetrievedClauseRef = {
   clauseRef: string;
+  text?: string;
 };
 
 export type CitationFilterResult = {
@@ -72,6 +76,43 @@ export function filterGroundedRecommendations(
     kept,
     dropped,
     allowedRefs: [...allowed]
+  };
+}
+
+function normalizeQuote(value: string) {
+  return value.replace(/\s+/g, " ").trim().toLowerCase();
+}
+
+/**
+ * A prose claim is publishable only when it carries both an allowed clause reference
+ * and a non-trivial verbatim quote found in that retrieved clause. This does not ask a
+ * second model to grade itself: the evidence check is deterministic and fail-closed.
+ */
+export function isGroundedClaim(
+  claim: GroundedClaim,
+  retrievedClauses: RetrievedClauseRef[],
+  rulebook: Rulebook = getActiveRulebook()
+) {
+  const normalizedRef = normalizeClauseRef(claim.clauseRef, rulebook);
+  const quote = normalizeQuote(claim.evidenceQuote);
+  if (quote.length < 16) {
+    return false;
+  }
+
+  const clause = retrievedClauses.find(
+    (item) => normalizeClauseRef(item.clauseRef, rulebook) === normalizedRef
+  );
+  return Boolean(clause?.text && normalizeQuote(clause.text).includes(quote));
+}
+
+export function filterGroundedClaims(
+  claims: GroundedClaim[],
+  retrievedClauses: RetrievedClauseRef[],
+  rulebook: Rulebook = getActiveRulebook()
+) {
+  return {
+    kept: claims.filter((claim) => isGroundedClaim(claim, retrievedClauses, rulebook)),
+    dropped: claims.filter((claim) => !isGroundedClaim(claim, retrievedClauses, rulebook))
   };
 }
 

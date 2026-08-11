@@ -2,6 +2,8 @@ import assert from "node:assert/strict";
 import { describe, it } from "node:test";
 import {
   filterGroundedRecommendations,
+  filterGroundedClaims,
+  isGroundedClaim,
   normalizeClauseRef
 } from "../../lib/citations";
 import { computeReadinessScore, deriveLevel } from "../../lib/assessment";
@@ -38,6 +40,35 @@ describe("filterGroundedRecommendations", () => {
       result.kept.map((item) => normalizeClauseRef(item.clauseRef)).sort(),
       ["art 10", "art 14"]
     );
+  });
+});
+
+describe("fail-closed prose grounding", () => {
+  const retrieved = [
+    {
+      clauseRef: "Art 14",
+      text: "Deployers shall assign human oversight to natural persons with the necessary competence."
+    }
+  ];
+
+  it("keeps a claim only when its quote occurs in the cited retrieved clause", () => {
+    const claim = {
+      text: "Assign qualified people to oversee the system.",
+      clauseRef: "Article 14",
+      evidenceQuote: "human oversight to natural persons with the necessary competence"
+    };
+    assert.equal(isGroundedClaim(claim, retrieved), true);
+    assert.equal(filterGroundedClaims([claim], retrieved).kept.length, 1);
+  });
+
+  it("rejects an allowed reference carrying an invented supporting quote", () => {
+    const claim = {
+      text: "Maintain a quantum-computing fallback.",
+      clauseRef: "Art 14",
+      evidenceQuote: "Every system must maintain a quantum-computing fallback"
+    };
+    assert.equal(isGroundedClaim(claim, retrieved), false);
+    assert.equal(filterGroundedClaims([claim], retrieved).dropped.length, 1);
   });
 });
 

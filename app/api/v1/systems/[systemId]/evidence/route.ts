@@ -2,7 +2,8 @@ import { NextResponse } from "next/server";
 import { requireApiKey } from "@/lib/api-auth";
 import { EvidenceStatus, EvidenceType } from "@/lib/db-enums";
 import { createEvidenceItem } from "@/lib/services/systems";
-import { prisma } from "@/lib/prisma";
+import { requireOwnedSystem } from "@/lib/authorization";
+import { httpUrl } from "@/lib/validation";
 import { z } from "zod";
 
 export const dynamic = "force-dynamic";
@@ -12,13 +13,13 @@ type RouteContext = {
 };
 
 const evidenceBodySchema = z.object({
-  title: z.string().trim().min(1),
-  description: z.string().trim().min(1),
+  title: z.string().trim().min(1).max(160),
+  description: z.string().trim().min(1).max(4000),
   type: z.nativeEnum(EvidenceType).default(EvidenceType.URL),
-  sourceUrl: z.string().trim().url().optional(),
-  sectionKey: z.string().trim().optional(),
-  sectionId: z.string().trim().optional(),
-  owner: z.string().trim().min(1),
+  sourceUrl: httpUrl.optional(),
+  sectionKey: z.string().trim().max(160).optional(),
+  sectionId: z.string().trim().max(160).optional(),
+  owner: z.string().trim().min(1).max(160),
   status: z.nativeEnum(EvidenceStatus).default(EvidenceStatus.COMPLETE),
   lastReviewedDate: z.string().trim().optional()
 });
@@ -30,8 +31,9 @@ export async function POST(request: Request, context: RouteContext) {
   }
 
   const systemId = context.params.systemId;
-  const system = await prisma.aiSystem.findUnique({ where: { id: systemId } });
-  if (!system) {
+  try {
+    await requireOwnedSystem(systemId);
+  } catch {
     return NextResponse.json({ error: "System not found" }, { status: 404 });
   }
 
@@ -51,6 +53,12 @@ export async function POST(request: Request, context: RouteContext) {
     if (parsed.data.type === EvidenceType.URL && !parsed.data.sourceUrl) {
       return NextResponse.json(
         { error: "URL evidence requires sourceUrl" },
+        { status: 400 }
+      );
+    }
+    if (parsed.data.type === EvidenceType.FILE) {
+      return NextResponse.json(
+        { error: "Private file storage is not enabled; provide HTTPS URL evidence." },
         { status: 400 }
       );
     }

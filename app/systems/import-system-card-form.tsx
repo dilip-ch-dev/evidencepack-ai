@@ -3,6 +3,7 @@
 import { useFormState } from "react-dom";
 import { initialActionState, type ActionState } from "./action-state";
 import { importSystemCardAction } from "./import-actions";
+import { SubmitButton } from "@/app/components/submit-button";
 
 const PLACEHOLDER = `{
   "system": {
@@ -52,12 +53,9 @@ export function ImportSystemCardForm() {
           <p className="rounded-xl bg-red-50 px-3 py-2 text-sm text-red-800">{state.message}</p>
         )}
         <div>
-          <button
-            type="submit"
-            className="inline-flex items-center justify-center rounded-xl border border-slate-300 bg-white px-4 py-3 text-sm font-medium text-slate-900 shadow-sm hover:bg-slate-50"
-          >
+          <SubmitButton pendingLabel="Importing system card…" className="inline-flex items-center justify-center rounded-xl border border-slate-300 bg-white px-4 py-3 text-sm font-medium text-slate-900 shadow-sm hover:bg-slate-50">
             Import system card
-          </button>
+          </SubmitButton>
         </div>
       </form>
     </details>

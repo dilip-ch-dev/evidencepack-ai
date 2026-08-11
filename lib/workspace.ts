@@ -1,29 +1,33 @@
 import { prisma } from "@/lib/prisma";
+import { getSessionIdHash } from "@/lib/session";
+
+export const DEMO_WORKSPACE_ID = "sample-workspace-id";
 
 export async function getOrCreatePrimaryWorkspace() {
-  const existingWorkspace = await prisma.workspace.findFirst({
-    orderBy: {
-      createdAt: "asc"
-    }
-  });
+  const sessionIdHash = getSessionIdHash();
+  const existingWorkspace = await prisma.workspace.findUnique({ where: { sessionIdHash } });
 
   if (existingWorkspace) {
     return existingWorkspace;
   }
 
+  const email = `session-${sessionIdHash.slice(0, 24)}@truecite.local`;
   const owner = await prisma.user.upsert({
-    where: { email: "local.owner@truecite.local" },
-    update: { name: "Local Workspace Owner" },
+    where: { email },
+    update: { name: "Private Session Owner" },
     create: {
-      email: "local.owner@truecite.local",
-      name: "Local Workspace Owner"
+      email,
+      name: "Private Session Owner"
     }
   });
 
-  return prisma.workspace.create({
-    data: {
-      name: "Local Truecite Workspace",
-      ownerId: owner.id
+  return prisma.workspace.upsert({
+    where: { sessionIdHash },
+    update: {},
+    create: {
+      name: "Private TrueCite Workspace",
+      ownerId: owner.id,
+      sessionIdHash
     }
   });
 }

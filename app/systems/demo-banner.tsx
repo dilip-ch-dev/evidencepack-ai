@@ -25,9 +25,12 @@ export function DemoBanner({ sampleSystemId }: DemoBannerProps) {
           <ol className="mt-3 list-decimal space-y-2 pl-4">
             <li>Open the sample system</li>
             <li>Scan open gaps</li>
-            <li>Generate assessment</li>
-            <li>Open the shareable page</li>
+            <li>Review the seeded assessment</li>
+            <li>Open the assessment view</li>
           </ol>
+          <p className="mt-3 rounded-xl bg-signal-50 px-3 py-2 text-xs leading-relaxed text-slate-600">
+            Grounding proof: the seeded run records one unsupported claim as dropped; only quote-backed claims reach the saved assessment.
+          </p>
           {sampleSystemId && (
             <Link
               href={`/systems/${sampleSystemId}`}

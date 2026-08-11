@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
+import { requireOwnedSystem } from "@/lib/authorization";
 
 export const dynamic = "force-dynamic";
 
@@ -9,6 +10,7 @@ type RouteContext = {
 
 export async function GET(_request: Request, context: RouteContext) {
   try {
+    await requireOwnedSystem(context.params.systemId);
     const runs = await prisma.assessmentRun.findMany({
       where: { systemId: context.params.systemId },
       orderBy: { createdAt: "desc" },
@@ -30,16 +32,13 @@ export async function GET(_request: Request, context: RouteContext) {
         createdAt: run.createdAt
       }))
     });
-  } catch (error) {
+  } catch {
     return NextResponse.json(
       {
         error: "Assessment runs unavailable",
-        message:
-          error instanceof Error
-            ? error.message
-            : "AssessmentRun table may not be synced yet. Run npm run db:push."
+        message: "The resource was not found or is temporarily unavailable."
       },
-      { status: 503 }
+      { status: 404 }
     );
   }
 }

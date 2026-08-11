@@ -3,6 +3,7 @@ import {
   EvidenceType
 } from "@/lib/db-enums";
 import { recomputeGaps } from "@/lib/gaps";
+import { getReadableSystemWorkspaceIds, requireOwnedSystem } from "@/lib/authorization";
 import { prisma } from "@/lib/prisma";
 import type { SystemCard } from "@/lib/system-card";
 import type { createSystemSchema } from "@/lib/validation";
@@ -38,6 +39,7 @@ export type CreateEvidenceInput = {
 };
 
 export async function createEvidenceItem(input: CreateEvidenceInput) {
+  await requireOwnedSystem(input.systemId);
   let sectionId = input.sectionId ?? null;
   if (!sectionId && input.sectionKey) {
     const section = await prisma.questionnaireSection.findUnique({
@@ -127,9 +129,9 @@ export async function importSystemCard(card: SystemCard) {
 }
 
 export async function listSystemsSummary() {
-  const workspace = await getOrCreatePrimaryWorkspace();
+  const workspaceIds = await getReadableSystemWorkspaceIds();
   const systems = await prisma.aiSystem.findMany({
-    where: { workspaceId: workspace.id },
+    where: { workspaceId: { in: workspaceIds } },
     orderBy: { updatedAt: "desc" },
     include: {
       assessments: {
@@ -169,8 +171,9 @@ export async function listSystemsSummary() {
 }
 
 export async function getSystemDetail(systemId: string) {
-  return prisma.aiSystem.findUnique({
-    where: { id: systemId },
+  const workspaceIds = await getReadableSystemWorkspaceIds();
+  return prisma.aiSystem.findFirst({
+    where: { id: systemId, workspaceId: { in: workspaceIds } },
     include: {
       answers: {
         include: {

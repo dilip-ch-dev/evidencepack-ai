@@ -2,12 +2,25 @@
 
 import { revalidatePath } from "next/cache";
 import { generateAssessment } from "@/lib/assessment";
+import { enforceRateLimit, RateLimitExceededError } from "@/lib/rate-limit";
 
 function ensureString(value: FormDataEntryValue | null) {
   return typeof value === "string" ? value : "";
 }
 
 export async function runAssessmentAction(systemId: string) {
+  try {
+    await enforceRateLimit("assessment", 5, 10 * 60 * 1000);
+  } catch (error) {
+    if (error instanceof RateLimitExceededError) {
+      return {
+        status: "error" as const,
+        message: `Too many assessments. Try again in ${error.retryAfterSeconds} seconds.`
+      };
+    }
+    return { status: "error" as const, message: "Could not check request limits." };
+  }
+
   const result = await generateAssessment(systemId);
 
   if (result.status === "rate_limited") {

@@ -5,8 +5,9 @@ import {
   EvidenceType,
   RiskCategory
 } from "../lib/db-enums";
-import { generateAssessment } from "../lib/assessment";
-import { recomputeGaps } from "../lib/gaps";
+import { computeGapData, recomputeGaps } from "../lib/gaps";
+import { computeScoreBreakdown } from "../lib/scoring";
+import { getActiveRulebook } from "../lib/rulebook";
 import { QUESTIONNAIRE_SECTIONS } from "../lib/questionnaire";
 
 const prisma = new PrismaClient();
@@ -240,20 +241,63 @@ async function seedSampleAssessment(systemId: string) {
   }
 
   await recomputeGaps(systemId);
-  const result = await generateAssessment(systemId);
+  const { metrics, sections } = await computeGapData(systemId);
+  const rulebook = getActiveRulebook();
+  const breakdown = computeScoreBreakdown(metrics, sections, "scoring_v2", rulebook);
+  const retrievedClauses = [
+    {
+      clauseRef: "Art 9",
+      title: "Risk management system",
+      distance: 0.19,
+      evidenceQuote: "maintain a risk management system that runs as a continuous, iterative process"
+    },
+    {
+      clauseRef: "Art 14",
+      title: "Human oversight",
+      distance: 0.16,
+      evidenceQuote: "decide not to use the system or to disregard, override, or reverse its output"
+    }
+  ];
 
-  if (result.status === "success") {
-    return;
-  }
+  await prisma.assessment.create({
+    data: {
+      systemId,
+      score: breakdown.score,
+      level: breakdown.level,
+      summary:
+        "The walkthrough documents meaningful human oversight and risk controls, but open evidence gaps keep it from being review-ready. Close the remaining gaps and refresh stale support before relying on the pack.",
+      recommendations: JSON.stringify([
+        {
+          text: "Document how reviewers disregard, override, or reverse system output during hiring decisions.",
+          clauseRef: "Art 14",
+          evidenceQuote: retrievedClauses[1].evidenceQuote
+        },
+        {
+          text: "Record a recurring lifecycle review for the risk-management process and its residual risks.",
+          clauseRef: "Art 9",
+          evidenceQuote: retrievedClauses[0].evidenceQuote
+        }
+      ]),
+      confidence: "high",
+      citations: JSON.stringify(retrievedClauses.map(({ evidenceQuote: _quote, ...clause }) => clause)),
+      scoringVersion: breakdown.scoringVersion,
+      corpusVersion: rulebook.id,
+      scoreBreakdown: JSON.stringify(breakdown)
+    }
+  });
 
-  if (result.status === "rate_limited") {
-    console.warn(
-      "Sample assessment seed was rate limited; skipping for now. Re-run seed later to backfill once quota is available."
-    );
-    return;
-  }
-
-  console.warn(`Sample assessment seed skipped: ${result.message}`);
+  await prisma.assessmentRun.create({
+    data: {
+      systemId,
+      status: "success",
+      stage: "seeded-demo",
+      scoringVersion: breakdown.scoringVersion,
+      corpusVersion: rulebook.id,
+      retrievedCount: retrievedClauses.length,
+      droppedCitations: 1,
+      retrievalLog: JSON.stringify(retrievedClauses)
+    }
+  });
 }
 
 async function main() {

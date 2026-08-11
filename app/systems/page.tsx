@@ -2,7 +2,7 @@ import { DeploymentStatus, RiskCategory } from "@/lib/db-enums";
 import Link from "next/link";
 import { SiteHeader } from "@/app/components/site-header";
 import { prisma } from "@/lib/prisma";
-import { getOrCreatePrimaryWorkspace } from "@/lib/workspace";
+import { getReadableSystemWorkspaceIds } from "@/lib/authorization";
 import { CreateSystemForm } from "./create-system-form";
 import { DemoBanner } from "./demo-banner";
 import { HuggingFaceImportForm } from "./hf-import-form";
@@ -29,10 +29,10 @@ function modeHref(mode: string) {
 }
 
 export default async function SystemsPage({ searchParams }: PageProps) {
-  const workspace = await getOrCreatePrimaryWorkspace();
+  const workspaceIds = await getReadableSystemWorkspaceIds();
   const systems = await prisma.aiSystem.findMany({
     where: {
-      workspaceId: workspace.id
+      workspaceId: { in: workspaceIds }
     },
     orderBy: {
       updatedAt: "desc"
