@@ -154,6 +154,18 @@ label {
     position: static;
     max-height: none;
   }
+
+  .workspace-main {
+    order: 1;
+  }
+
+  .workspace-navigation {
+    order: 2;
+  }
+
+  .workspace-evidence {
+    order: 3;
+  }
 }
 
 .site-header {
