@@ -144,7 +144,7 @@ export default async function SystemDetailPage({ params }: PageProps) {
     <>
       <SiteHeader />
       <main className="workspace-shell">
-        <aside className="workspace-rail">
+        <aside className="workspace-rail workspace-navigation">
           <div className="panel-surface p-4">
             <Link href="/systems" className="text-xs font-medium text-signal-700 hover:underline">
               ← Systems
@@ -190,7 +190,7 @@ export default async function SystemDetailPage({ params }: PageProps) {
           </nav>
         </aside>
 
-        <section className="grid gap-5">
+        <section className="workspace-main grid gap-5">
           <header id="overview" className="panel-surface scroll-mt-24 p-6">
             <div className="flex flex-wrap items-start justify-between gap-4">
               <div className="max-w-3xl">
@@ -559,7 +559,7 @@ export default async function SystemDetailPage({ params }: PageProps) {
           </section>
         </section>
 
-        <aside id="evidence" className="workspace-rail scroll-mt-24">
+        <aside id="evidence" className="workspace-rail workspace-evidence scroll-mt-24">
           <div className="panel-surface p-4">
             <div className="flex items-center justify-between gap-2">
               <h2 className="font-display text-xl text-ink-900">Evidence index</h2>
