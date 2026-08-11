@@ -3,6 +3,7 @@
 import { useFormState } from "react-dom";
 import { createSystemAction } from "./actions";
 import { initialActionState, type ActionState } from "./action-state";
+import { SubmitButton } from "@/app/components/submit-button";
 
 type Props = {
   deploymentOptions: string[];
@@ -92,9 +93,9 @@ export function CreateSystemForm({
           <p className="rounded-xl bg-red-50 px-3 py-2 text-sm text-red-800 md:col-span-2">{state.message}</p>
         )}
         <div className="md:col-span-2">
-          <button type="submit" className="inline-flex rounded-xl bg-slate-900 px-4 py-3 text-sm font-medium text-white shadow-sm hover:bg-slate-800">
+          <SubmitButton pendingLabel="Creating workspace…" className="inline-flex rounded-xl bg-slate-900 px-4 py-3 text-sm font-medium text-white shadow-sm hover:bg-slate-800">
             Create system manually
-          </button>
+          </SubmitButton>
         </div>
       </form>
     </details>

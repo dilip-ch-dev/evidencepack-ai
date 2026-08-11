@@ -1,8 +1,12 @@
 import { GoogleGenAI, Type } from "@google/genai";
 import type { Schema } from "@google/genai";
 import type { Assessment } from "@prisma/client";
+import { requireOwnedSystem } from "@/lib/authorization";
 import {
-  filterGroundedRecommendations,
+  buildAllowedClauseRefSet,
+  filterGroundedClaims,
+  isGroundedClaim,
+  type GroundedClaim,
   type RecommendationWithCitation
 } from "@/lib/citations";
 import { computeGapData } from "@/lib/gaps";
@@ -31,8 +35,8 @@ const RETRY_BACKOFF_MS = 500;
 type ConfidenceLevel = "low" | "high";
 
 type ParsedAssessment = {
-  summary: string;
-  recommendations: RecommendationWithCitation[];
+  summary: GroundedClaim;
+  recommendations: GroundedClaim[];
 };
 
 export type AssessmentFailureStage = "embed" | "retrieve" | "generate" | "parse" | "persist";
@@ -66,14 +70,19 @@ const ASSESSMENT_RESPONSE_SCHEMA: Schema = {
   required: ["summary", "recommendations"],
   properties: {
     summary: {
-      type: Type.STRING,
-      description: "2-3 sentence compliance posture summary."
+      type: Type.OBJECT,
+      required: ["text", "clauseRef", "evidenceQuote"],
+      properties: {
+        text: { type: Type.STRING, description: "2-3 sentence compliance posture summary." },
+        clauseRef: { type: Type.STRING, description: "Exact retrieved clause reference." },
+        evidenceQuote: { type: Type.STRING, description: "Verbatim supporting quote copied from that clause." }
+      }
     },
     recommendations: {
       type: Type.ARRAY,
       items: {
         type: Type.OBJECT,
-        required: ["text", "clauseRef"],
+        required: ["text", "clauseRef", "evidenceQuote"],
         properties: {
           text: {
             type: Type.STRING,
@@ -82,6 +91,10 @@ const ASSESSMENT_RESPONSE_SCHEMA: Schema = {
           clauseRef: {
             type: Type.STRING,
             description: "Exact clause reference copied from the retrieved clauses."
+          },
+          evidenceQuote: {
+            type: Type.STRING,
+            description: "Verbatim supporting quote copied from that retrieved clause."
           }
         }
       }
@@ -124,7 +137,16 @@ function toRecommendation(item: unknown): RecommendationWithCitation | null {
   if (!text || !clauseRef) {
     return null;
   }
-  return { text, clauseRef };
+  const evidenceQuoteValue = "evidenceQuote" in item ? (item as { evidenceQuote: unknown }).evidenceQuote : null;
+  const evidenceQuote = typeof evidenceQuoteValue === "string" ? evidenceQuoteValue.trim() : undefined;
+  return { text, clauseRef, ...(evidenceQuote ? { evidenceQuote } : {}) };
+}
+
+function toGroundedClaim(item: unknown): GroundedClaim | null {
+  const recommendation = toRecommendation(item);
+  return recommendation?.evidenceQuote
+    ? { ...recommendation, evidenceQuote: recommendation.evidenceQuote }
+    : null;
 }
 
 function getErrorMessage(error: unknown, fallback: string) {
@@ -269,23 +291,24 @@ function parseAssessmentPayload(rawText: string): ParsedAssessment | null {
   try {
     const parsed = JSON.parse(stripCodeFences(rawText)) as Partial<ParsedAssessment>;
     if (
-      typeof parsed.summary !== "string" ||
-      !parsed.summary.trim() ||
+      !parsed.summary ||
+      typeof parsed.summary !== "object" ||
       !Array.isArray(parsed.recommendations)
     ) {
       return null;
     }
 
+    const summary = toGroundedClaim(parsed.summary);
     const recommendations = parsed.recommendations
-      .map((item) => toRecommendation(item))
-      .filter((item): item is RecommendationWithCitation => Boolean(item));
+      .map((item) => toGroundedClaim(item))
+      .filter((item): item is GroundedClaim => Boolean(item));
 
-    if (recommendations.length === 0) {
+    if (!summary || recommendations.length === 0) {
       return null;
     }
 
     return {
-      summary: parsed.summary.trim(),
+      summary,
       recommendations
     };
   } catch {
@@ -440,8 +463,27 @@ async function buildRateLimitedFallbackResult(
   };
 }
 
-export async function generateAssessment(systemId: string): Promise<AssessmentGenerationResult> {
+export async function generateAssessment(
+  systemId: string,
+  trustedWorkspaceId?: string
+): Promise<AssessmentGenerationResult> {
   const startedAt = Date.now();
+
+  if (trustedWorkspaceId) {
+    const trustedSystem = await prisma.aiSystem.findFirst({
+      where: { id: systemId, workspaceId: trustedWorkspaceId },
+      select: { id: true }
+    });
+    if (!trustedSystem) {
+      return { status: "error", message: "System not found." };
+    }
+  } else {
+    try {
+      await requireOwnedSystem(systemId);
+    } catch {
+      return { status: "error", message: "System not found." };
+    }
+  }
 
   const system = await prisma.aiSystem.findUnique({
     where: { id: systemId },
@@ -593,8 +635,9 @@ export async function generateAssessment(systemId: string): Promise<AssessmentGe
     const prompt = [
       `You are reviewing an AI system against ${rulebook.name} (${rulebook.jurisdiction}).`,
       'Return STRICT JSON only with keys: "summary", "recommendations".',
-      "Rules: summary must be 2-3 sentences describing the system's posture against this rulebook.",
-      `Rules: recommendations must be an array of objects with keys "text" and "clauseRef"; each recommendation must cite one of the retrieved clauseRef values verbatim.`,
+      'Rules: summary must be an object with keys "text", "clauseRef", and "evidenceQuote". Its text must be 2-3 sentences.',
+      'Rules: recommendations must be objects with keys "text", "clauseRef", and "evidenceQuote".',
+      "Every clauseRef must exactly match a retrieved clauseRef. Every evidenceQuote must be a verbatim, non-trivial quote copied from that same retrieved clause.",
       `The rulebook calls each unit a "${rulebook.clauseLabel.singular}".`,
       "Ground every finding in retrieved clauses only. Do not invent citations.",
       "Do not include a numeric score or readiness level; those are computed separately.",
@@ -720,12 +763,14 @@ export async function generateAssessment(systemId: string): Promise<AssessmentGe
       };
     }
 
-    const grounded = filterGroundedRecommendations(
+    const grounded = filterGroundedClaims(
       parsed.recommendations,
       retrievedClauses,
       rulebook
     );
-    if (grounded.kept.length === 0) {
+    const summaryGrounded = isGroundedClaim(parsed.summary, retrievedClauses, rulebook);
+    if (!summaryGrounded || grounded.kept.length === 0) {
+      const allowedRefs = [...buildAllowedClauseRefSet(retrievedClauses, rulebook)];
       await logAssessmentRun({
         systemId,
         status: "error",
@@ -736,15 +781,15 @@ export async function generateAssessment(systemId: string): Promise<AssessmentGe
         retrievedCount: retrievedClauses.length,
         droppedCitations: grounded.dropped.length,
         retrievalLog: retrievedClauses,
-        errorMessage: "All citations failed groundedness gate"
+        errorMessage: "Summary or all recommendation claims failed groundedness gate"
       });
       return {
         status: "error",
         message:
-          "Assessment refused: no recommendations cited retrieved regulation clauses.",
+          "Assessment refused: generated prose was not supported by retrieved regulation text.",
         failure: {
           stage: "parse",
-          errorMessage: `All ${grounded.dropped.length} recommendation citation(s) failed the groundedness gate. Allowed refs: ${grounded.allowedRefs.join(", ") || "(none)"}.`
+          errorMessage: `Summary grounded: ${summaryGrounded}. Dropped ${grounded.dropped.length} recommendation claim(s). Allowed refs: ${allowedRefs.join(", ") || "(none)"}.`
         }
       };
     }
@@ -763,7 +808,7 @@ export async function generateAssessment(systemId: string): Promise<AssessmentGe
             systemId,
             score,
             level,
-            summary: parsed.summary,
+            summary: parsed.summary.text,
             recommendations: JSON.stringify(grounded.kept),
             confidence,
             citations: JSON.stringify(
@@ -788,7 +833,7 @@ export async function generateAssessment(systemId: string): Promise<AssessmentGe
             systemId,
             score,
             level,
-            summary: parsed.summary,
+            summary: parsed.summary.text,
             recommendations: JSON.stringify(grounded.kept),
             confidence,
             citations: JSON.stringify(

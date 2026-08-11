@@ -8,9 +8,7 @@ It does **not** remote-control your model runtime. “Connecting” an AI system
 
 ## Live app
 
-**https://evidencepack-ai.vercel.app**
-
-> Brand is **Truecite**. The Vercel hostname may still say `evidencepack-ai` until the project alias is updated — the product UI is Truecite either way.
+**https://truecite.vercel.app**
 
 ### Preferred usage flow
 
@@ -18,7 +16,7 @@ It does **not** remote-control your model runtime. “Connecting” an AI system
 2. Paste a **Hugging Face model URL** to create a real system record from public metadata
 3. Review the generated system, fill gaps, and attach more evidence
 4. Run the grounded assessment
-5. Open the shareable assessment page or export the evidence pack
+5. Open the assessment view or export the evidence pack
 
 ### Demo flow
 
@@ -26,21 +24,21 @@ If you want a recruiter walkthrough instead of a real import:
 
 - Switch `/systems` to **Demo mode**
 - Open the seeded **`[SAMPLE DATA] EU HR Screening Assistant`**
-- Review gaps → generate assessment → open shareable page
+- Review the read-only walkthrough, its open gaps, grounded assessment, and retrieved clauses
 
 ## What it does
 
 - Create / list AI systems with governance metadata
 - Complete a multi-section questionnaire
-- Attach URL or file evidence by section
+- Attach HTTPS evidence links by section (hosted file uploads stay disabled until private storage exists)
 - Auto-detect gaps (unanswered questions, missing/stale evidence)
 - Import a **Hugging Face model URL** into a governance-ready system draft
 - Import a **system card** (JSON or Markdown + YAML frontmatter)
 - Grounded RAG assessment over pluggable rulebook clauses (pgvector + Gemini)
-- Fail-closed citation gate (recommendations must cite retrieved `clauseRef`s)
+- Fail-closed prose gate (summary and recommendations require a retrieved `clauseRef` plus a verbatim quote from that clause)
 - Structural assessment diff (what changed between runs, and why)
 - Labeled failure taxonomy with an actionable fix queue
-- Public JSON API for create / import / evidence / assess / diff
+- Session-scoped JSON API for create / import / evidence / assess / diff
 - Export Markdown evidence packs
 
 ## Grounded assessment stack
@@ -48,10 +46,10 @@ If you want a recruiter walkthrough instead of a real import:
 - **Rulebooks:** `rulebooks/<id>/rulebook.json` + `clauses.md` — obligations, aliases, gap routing
 - **Ingest:** `npm run ingest -- <rulebookId>` chunks and embeds a rulebook corpus
 - **Retrieve:** `lib/retrieval.ts` blends vector similarity, keyword overlap, and gap-aware clause boosts
-- **Generate:** Gemini returns narrative `summary` + cited `recommendations` only
+- **Generate:** Gemini returns a summary and recommendations with a clause reference and supporting quote
 - **Score:** `scoring_v2` computes obligation coverage + documentation/control readiness
 - **Observe:** `AssessmentRun` stores latency, stage, retrieval count, and dropped citations
-- **Gate:** `lib/citations.ts` drops any recommendation whose citation is not in the retrieved set
+- **Gate:** `lib/citations.ts` rejects prose unless its reference was retrieved and its supporting quote occurs in that clause
 - **Diff:** `npm run diff` / `GET /api/v1/systems/:id/diff` attributes score movement to scoring, corpus, inputs, or model
 - **Taxonomy:** `npm run taxonomy` turns labeled defects in `eval/annotations.json` into a fix queue
 
@@ -103,12 +101,12 @@ Examples:
 
 ```bash
 # Hugging Face URL import
-curl -sS -X POST https://evidencepack-ai.vercel.app/api/v1/import/huggingface \
+curl -sS -c .truecite-cookie -b .truecite-cookie -X POST https://truecite.vercel.app/api/v1/import/huggingface \
   -H "content-type: application/json" \
   -d '{"source":"https://huggingface.co/mistralai/Mistral-7B-Instruct-v0.3"}'
 
 # Advanced system-card import
-curl -sS -X POST https://evidencepack-ai.vercel.app/api/v1/import \
+curl -sS -c .truecite-cookie -b .truecite-cookie -X POST https://truecite.vercel.app/api/v1/import \
   -H "content-type: application/json" \
   --data-binary @examples/system-card.json
 ```
@@ -129,10 +127,17 @@ API surface:
 | POST | `/api/v1/import/huggingface` | Import from Hugging Face URL |
 | POST | `/api/v1/demo/reset` | Delete non-sample systems (`DEMO_RESET_KEY`) |
 
+## Evaluation evidence
+
+The committed 36-case gate corpus currently passes 36/36 cases. On the 36-case retrieval golden set at `topK=5`, recall is `0.8889`, MRR is `0.8485`, and hit@1 is `0.8056`.
+
+The gap-aware retrieval boost currently has **no measurable effect** on that committed golden set: with-boost and without-boost metrics are byte-for-byte identical. The project reports that negative result rather than presenting the boost as proven value. See `eval/results/latest.json` and run `npm run eval:check`.
+
 ## Current limitations
 
-- Single shared workspace (no multi-user auth yet)
+- Browser-session isolation is not account authentication; clearing the cookie can make a private workspace inaccessible
 - No automatic runtime integration with arbitrary private endpoints yet
 - Hugging Face import currently uses public model metadata, not live inference behavior
 - Regulation corpus is curated rather than full-text legislation
-- File uploads are local/Vercel-filesystem oriented; URL evidence is better for hosted demos
+- Hosted file uploads are disabled until private object storage is configured
+- The curated demo is read-only; create a private-session workspace to test writes

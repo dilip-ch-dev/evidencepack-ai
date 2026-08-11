@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { requireApiKey } from "@/lib/api-auth";
 import { importSystemCard } from "@/lib/services/systems";
 import { parseSystemCard } from "@/lib/system-card";
+import { enforceRateLimit, RateLimitExceededError } from "@/lib/rate-limit";
 
 export const dynamic = "force-dynamic";
 
@@ -16,6 +17,7 @@ export async function POST(request: Request) {
   }
 
   try {
+    await enforceRateLimit("system-card-import", 10, 10 * 60 * 1000);
     const contentType = request.headers.get("content-type") || "";
     let raw = "";
 
@@ -49,6 +51,12 @@ export async function POST(request: Request) {
       { status: 201 }
     );
   } catch (error) {
+    if (error instanceof RateLimitExceededError) {
+      return NextResponse.json(
+        { error: "Rate limit exceeded", message: error.message },
+        { status: 429, headers: { "Retry-After": String(error.retryAfterSeconds) } }
+      );
+    }
     return NextResponse.json(
       {
         error: "Import failed",

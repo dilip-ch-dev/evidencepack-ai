@@ -25,7 +25,7 @@ html {
 
 body {
   margin: 0;
-  min-height: 100vh;
+  min-height: 100dvh;
   background:
     radial-gradient(1200px 600px at 10% -10%, rgba(20, 184, 166, 0.12), transparent 55%),
     radial-gradient(900px 500px at 100% 0%, rgba(15, 23, 42, 0.06), transparent 50%),
@@ -84,7 +84,7 @@ label {
 
 .landing-shell {
   position: relative;
-  min-height: 100vh;
+  min-height: 100dvh;
   overflow: clip;
   background:
     radial-gradient(ellipse 80% 60% at 70% 20%, rgba(20, 184, 166, 0.18), transparent 55%),
@@ -109,7 +109,7 @@ label {
   position: relative;
   display: grid;
   align-content: center;
-  min-height: calc(100vh - 4.5rem);
+  min-height: calc(100dvh - 4.5rem);
   gap: 1.25rem;
   padding: 3rem 1.25rem 4rem;
   max-width: 72rem;
@@ -142,8 +142,11 @@ label {
   top: 5rem;
   display: grid;
   gap: 0.75rem;
-  max-height: calc(100vh - 6rem);
-  overflow: auto;
+  max-height: calc(100dvh - 6rem);
+  min-width: 0;
+  overflow-x: hidden;
+  overflow-y: auto;
+  scrollbar-gutter: stable;
 }
 
 @media (max-width: 1099px) {
@@ -183,6 +186,7 @@ label {
   border: 1px solid var(--border);
   border-radius: 1.25rem;
   box-shadow: 0 1px 0 rgba(15, 23, 42, 0.04), 0 12px 32px rgba(15, 23, 42, 0.06);
+  transition: border-color 180ms ease, box-shadow 180ms ease, transform 180ms ease;
 }
 
 .status-chip {
@@ -249,4 +253,18 @@ label {
 
 .signal-line {
   animation: pulse-line 3.2s ease-in-out infinite;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  html {
+    scroll-behavior: auto;
+  }
+
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
 }

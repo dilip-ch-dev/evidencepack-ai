@@ -6,6 +6,7 @@ import { buildSystemCardFromHuggingFace } from "@/lib/huggingface";
 import { importSystemCard } from "@/lib/services/systems";
 import { parseSystemCard } from "@/lib/system-card";
 import type { ActionState } from "./action-state";
+import { enforceRateLimit, RateLimitExceededError } from "@/lib/rate-limit";
 
 function ensureString(value: FormDataEntryValue | null) {
   return typeof value === "string" ? value : "";
@@ -25,6 +26,7 @@ export async function importSystemCardAction(
   }
 
   try {
+    await enforceRateLimit("system-card-import", 10, 10 * 60 * 1000);
     const result = await importSystemCard(parsed.card);
     revalidatePath("/systems");
     redirect(`/systems/${result.system.id}`);
@@ -39,6 +41,9 @@ export async function importSystemCardAction(
       throw error;
     }
 
+    if (error instanceof RateLimitExceededError) {
+      return { status: "error", message: `Too many imports. Try again in ${error.retryAfterSeconds} seconds.` };
+    }
     return {
       status: "error",
       message: "Could not import system card. Please check the format and try again."
@@ -59,6 +64,7 @@ export async function importHuggingFaceModelAction(
   }
 
   try {
+    await enforceRateLimit("huggingface-import", 10, 10 * 60 * 1000);
     const card = await buildSystemCardFromHuggingFace(source);
     const result = await importSystemCard(card);
     revalidatePath("/systems");
@@ -74,6 +80,9 @@ export async function importHuggingFaceModelAction(
       throw error;
     }
 
+    if (error instanceof RateLimitExceededError) {
+      return { status: "error", message: `Too many imports. Try again in ${error.retryAfterSeconds} seconds.` };
+    }
     return {
       status: "error",
       message:

@@ -18,13 +18,14 @@ model User {
 }
 
 model Workspace {
-  id        String     @id @default(cuid())
-  name      String
-  ownerId   String
-  createdAt DateTime   @default(now())
-  updatedAt DateTime   @updatedAt
-  owner     User       @relation(fields: [ownerId], references: [id], onDelete: Cascade)
-  systems   AiSystem[]
+  id            String     @id @default(cuid())
+  name          String
+  ownerId       String
+  sessionIdHash String?    @unique
+  createdAt     DateTime   @default(now())
+  updatedAt     DateTime   @updatedAt
+  owner         User       @relation(fields: [ownerId], references: [id], onDelete: Cascade)
+  systems       AiSystem[]
 }
 
 model AiSystem {
@@ -51,7 +52,21 @@ model AiSystem {
   assessments               Assessment[]
   assessmentRuns            AssessmentRun[]
 
+  @@unique([workspaceId, systemName])
   @@map("AISystem")
+}
+
+model RateLimitBucket {
+  id              String   @id @default(cuid())
+  sessionIdHash   String
+  action          String
+  windowStartedAt DateTime
+  count           Int      @default(1)
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  @@unique([sessionIdHash, action, windowStartedAt])
+  @@index([windowStartedAt])
 }
 
 model Assessment {

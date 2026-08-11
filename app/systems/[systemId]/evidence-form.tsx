@@ -3,6 +3,7 @@
 import { useFormState } from "react-dom";
 import { createEvidenceAction } from "../actions";
 import { initialActionState, type ActionState } from "../action-state";
+import { SubmitButton } from "@/app/components/submit-button";
 
 type SectionOption = {
   id: string;
@@ -65,7 +66,6 @@ export function EvidenceForm({ systemId, defaultOwner, sections }: Props) {
             defaultValue="URL"
           >
             <option value="URL">URL</option>
-            <option value="FILE">File</option>
           </select>
         </label>
         <label className="grid gap-1 text-sm text-slate-700">
@@ -89,14 +89,9 @@ export function EvidenceForm({ systemId, defaultOwner, sections }: Props) {
           placeholder="https://..."
         />
       </label>
-      <label className="grid gap-1 text-sm text-slate-700">
-        File (if type is FILE)
-        <input
-          className="w-full rounded-xl border border-slate-300 bg-white px-3 py-2 text-sm text-slate-900 shadow-sm focus:outline-none focus:ring-2 focus:ring-slate-400"
-          name="file"
-          type="file"
-        />
-      </label>
+      <p className="rounded-xl bg-slate-50 px-3 py-2 text-xs leading-relaxed text-slate-600">
+        Hosted file uploads are disabled until private object storage is configured. Use an HTTPS evidence link; do not submit confidential material.
+      </p>
       <label className="grid gap-1 text-sm text-slate-700">
         Owner
         <input
@@ -120,12 +115,9 @@ export function EvidenceForm({ systemId, defaultOwner, sections }: Props) {
       {state.status === "success" && (
         <p className="rounded-xl bg-emerald-50 px-3 py-2 text-sm text-emerald-800">{state.message}</p>
       )}
-      <button
-        type="submit"
-        className="inline-flex rounded-xl bg-slate-900 px-4 py-3 text-sm font-medium text-white hover:bg-slate-800"
-      >
+      <SubmitButton pendingLabel="Attaching evidence…" className="inline-flex rounded-xl bg-slate-900 px-4 py-3 text-sm font-medium text-white hover:bg-slate-800">
         Attach evidence
-      </button>
+      </SubmitButton>
     </form>
   );
 }

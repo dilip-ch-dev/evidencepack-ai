@@ -3,6 +3,7 @@
 import { useFormState } from "react-dom";
 import { initialActionState, type ActionState } from "./action-state";
 import { importHuggingFaceModelAction } from "./import-actions";
+import { SubmitButton } from "@/app/components/submit-button";
 
 export function HuggingFaceImportForm() {
   const [state, formAction] = useFormState<ActionState, FormData>(
@@ -27,12 +28,9 @@ export function HuggingFaceImportForm() {
       {state.status === "error" && (
         <p className="rounded-xl bg-red-50 px-3 py-2 text-sm text-red-800">{state.message}</p>
       )}
-      <button
-        type="submit"
-        className="inline-flex items-center justify-center rounded-xl bg-sky-600 px-4 py-3 text-sm font-medium text-white shadow-sm hover:bg-sky-700"
-      >
+      <SubmitButton pendingLabel="Importing model metadata…" className="inline-flex items-center justify-center rounded-xl bg-sky-600 px-4 py-3 text-sm font-medium text-white shadow-sm hover:bg-sky-700">
         Import from Hugging Face
-      </button>
+      </SubmitButton>
     </form>
   );
 }

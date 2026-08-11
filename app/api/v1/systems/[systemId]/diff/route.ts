@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
-import { diffByIds, diffLatestForSystem } from "@/lib/assessment-history";
+import { diffByIdsForSystem, diffLatestForSystem } from "@/lib/assessment-history";
+import { requireOwnedSystem } from "@/lib/authorization";
 
 export const dynamic = "force-dynamic";
 
@@ -17,9 +18,10 @@ export async function GET(request: Request, context: RouteContext) {
   const after = searchParams.get("after");
 
   try {
+    await requireOwnedSystem(context.params.systemId);
     const outcome =
       before && after
-        ? await diffByIds(before, after)
+        ? await diffByIdsForSystem(context.params.systemId, before, after)
         : await diffLatestForSystem(context.params.systemId);
 
     if (outcome.status === "not_found") {
@@ -33,13 +35,13 @@ export async function GET(request: Request, context: RouteContext) {
     }
 
     return NextResponse.json({ systemId: context.params.systemId, diff: outcome.diff });
-  } catch (error) {
+  } catch {
     return NextResponse.json(
       {
         error: "Diff unavailable",
-        message: error instanceof Error ? error.message : "Failed to compute assessment diff."
+        message: "The resource was not found or is temporarily unavailable."
       },
-      { status: 503 }
+      { status: 404 }
     );
   }
 }

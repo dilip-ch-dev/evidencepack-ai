@@ -5,7 +5,9 @@ import {
   EvidenceType,
   RiskCategory
 } from "@/lib/db-enums";
-import { createSystemSchema } from "@/lib/validation";
+import { createSystemSchema, httpUrl } from "@/lib/validation";
+
+export const MAX_SYSTEM_CARD_BYTES = 100_000;
 
 export const KNOWN_QUESTION_KEYS = [
   "overview-main-function",
@@ -24,12 +26,12 @@ export const KNOWN_QUESTION_KEYS = [
 export type KnownQuestionKey = (typeof KNOWN_QUESTION_KEYS)[number];
 
 const evidenceCardSchema = z.object({
-  title: z.string().trim().min(1),
-  description: z.string().trim().min(1),
+  title: z.string().trim().min(1).max(160),
+  description: z.string().trim().min(1).max(4000),
   type: z.nativeEnum(EvidenceType).default(EvidenceType.URL),
-  sourceUrl: z.string().trim().url().optional(),
-  sectionKey: z.string().trim().optional(),
-  owner: z.string().trim().min(1).optional(),
+  sourceUrl: httpUrl.optional(),
+  sectionKey: z.string().trim().max(160).optional(),
+  owner: z.string().trim().min(1).max(160).optional(),
   status: z.nativeEnum(EvidenceStatus).default(EvidenceStatus.COMPLETE),
   lastReviewedDate: z.string().trim().optional()
 });
@@ -37,9 +39,10 @@ const evidenceCardSchema = z.object({
 export const systemCardSchema = z.object({
   system: createSystemSchema,
   answers: z
-    .record(z.string().trim().min(1), z.string().trim().min(1))
+    .record(z.string().trim().min(1).max(160), z.string().trim().min(1).max(4000))
+    .refine((value) => Object.keys(value).length <= 50, "Too many questionnaire answers")
     .default({}),
-  evidence: z.array(evidenceCardSchema).default([])
+  evidence: z.array(evidenceCardSchema).max(50, "Too many evidence items").default([])
 });
 
 export type SystemCard = z.infer<typeof systemCardSchema>;
@@ -123,6 +126,9 @@ export function parseSystemCard(raw: string):
   const trimmed = raw.trim();
   if (!trimmed) {
     return { ok: false, message: "System card content is empty." };
+  }
+  if (Buffer.byteLength(trimmed, "utf8") > MAX_SYSTEM_CARD_BYTES) {
+    return { ok: false, message: "System card exceeds the 100 KB limit." };
   }
 
   if (trimmed.startsWith("{")) {

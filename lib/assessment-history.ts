@@ -97,3 +97,25 @@ export async function diffByIds(beforeId: string, afterId: string): Promise<Diff
 
   return { status: "ok", diff: diffAssessments(before, after) };
 }
+
+export async function diffByIdsForSystem(
+  systemId: string,
+  beforeId: string,
+  afterId: string
+): Promise<DiffOutcome> {
+  const [beforeRow, afterRow] = await Promise.all([
+    prisma.assessment.findFirst({ where: { id: beforeId, systemId } }),
+    prisma.assessment.findFirst({ where: { id: afterId, systemId } })
+  ]);
+  const before = beforeRow ? assessmentToSnapshot(beforeRow) : null;
+  const after = afterRow ? assessmentToSnapshot(afterRow) : null;
+
+  if (!before) {
+    return { status: "not_found", message: `Assessment ${beforeId} not found.` };
+  }
+  if (!after) {
+    return { status: "not_found", message: `Assessment ${afterId} not found.` };
+  }
+
+  return { status: "ok", diff: diffAssessments(before, after) };
+}

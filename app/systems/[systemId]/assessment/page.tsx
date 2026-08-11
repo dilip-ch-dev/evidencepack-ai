@@ -3,6 +3,7 @@ import { notFound } from "next/navigation";
 import { SiteHeader } from "@/app/components/site-header";
 import { parseCitations, parseRecommendations, parseScoreBreakdown } from "@/lib/assessment";
 import { prisma } from "@/lib/prisma";
+import { getReadableSystemWorkspaceIds } from "@/lib/authorization";
 
 export const dynamic = "force-dynamic";
 
@@ -11,8 +12,9 @@ type PageProps = {
 };
 
 export default async function ShareableAssessmentPage({ params }: PageProps) {
-  const system = await prisma.aiSystem.findUnique({
-    where: { id: params.systemId },
+  const workspaceIds = await getReadableSystemWorkspaceIds();
+  const system = await prisma.aiSystem.findFirst({
+    where: { id: params.systemId, workspaceId: { in: workspaceIds } },
     include: {
       assessments: {
         orderBy: { createdAt: "desc" },

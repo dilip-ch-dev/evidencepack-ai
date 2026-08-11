@@ -22,6 +22,17 @@ export function SiteHeader({ variant = "light" }: SiteHeaderProps) {
         </Link>
         <nav className="flex flex-wrap items-center gap-2 text-sm">
           <Link
+            href="/about"
+            className={[
+              "rounded-full px-3 py-1.5 transition",
+              dark
+                ? "text-paper-100/80 hover:bg-white/5 hover:text-paper-50"
+                : "text-slate-600 hover:bg-slate-100 hover:text-slate-900"
+            ].join(" ")}
+          >
+            How it works
+          </Link>
+          <Link
             href="/systems?mode=demo"
             className={[
               "rounded-full px-3 py-1.5 transition",

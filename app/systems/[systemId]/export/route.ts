@@ -1,8 +1,6 @@
-import { ExportFormat, ExportStatus } from "@/lib/db-enums";
 import { NextResponse } from "next/server";
 import { buildMarkdownPack } from "@/lib/export-pack";
-import { recomputeGaps } from "@/lib/gaps";
-import { prisma } from "@/lib/prisma";
+import { requireOwnedSystem } from "@/lib/authorization";
 export const dynamic = "force-dynamic";
 
 type RouteProps = {
@@ -12,22 +10,16 @@ type RouteProps = {
 };
 
 export async function GET(_request: Request, { params }: RouteProps) {
-  await recomputeGaps(params.systemId);
+  try {
+    await requireOwnedSystem(params.systemId);
+  } catch {
+    return NextResponse.json({ error: "System not found." }, { status: 404 });
+  }
   const markdownPack = await buildMarkdownPack(params.systemId);
 
   if (!markdownPack) {
     return NextResponse.json({ error: "System not found." }, { status: 404 });
   }
-
-  await prisma.exportJob.create({
-    data: {
-      systemId: params.systemId,
-      format: ExportFormat.MARKDOWN,
-      status: ExportStatus.COMPLETED,
-      outputPath: markdownPack.fileName,
-      finishedAt: new Date()
-    }
-  });
 
   return new Response(markdownPack.content, {
     headers: {

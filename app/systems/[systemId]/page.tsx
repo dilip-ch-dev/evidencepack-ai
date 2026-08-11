@@ -4,11 +4,13 @@ import { SiteHeader } from "@/app/components/site-header";
 import { parseCitations, parseRecommendations, parseScoreBreakdown } from "@/lib/assessment";
 import { diffAssessments } from "@/lib/assessment-diff";
 import { assessmentToSnapshot } from "@/lib/assessment-history";
-import { recomputeGaps } from "@/lib/gaps";
+import { getReadableSystemWorkspaceIds } from "@/lib/authorization";
 import { prisma } from "@/lib/prisma";
 import { AssessmentForm } from "./assessment-form";
 import { EvidenceForm } from "./evidence-form";
 import { QuestionAnswerForm } from "./question-answer-form";
+import { WorkflowStepper } from "./workflow-stepper";
+import { DEMO_WORKSPACE_ID } from "@/lib/workspace";
 
 export const dynamic = "force-dynamic";
 
@@ -38,11 +40,11 @@ function statusTone(status: string) {
 }
 
 export default async function SystemDetailPage({ params }: PageProps) {
-  await recomputeGaps(params.systemId);
+  const workspaceIds = await getReadableSystemWorkspaceIds();
 
   const [system, sections] = await Promise.all([
-    prisma.aiSystem.findUnique({
-      where: { id: params.systemId },
+    prisma.aiSystem.findFirst({
+      where: { id: params.systemId, workspaceId: { in: workspaceIds } },
       include: {
         answers: true,
         evidenceItems: {
@@ -76,6 +78,7 @@ export default async function SystemDetailPage({ params }: PageProps) {
 
   const answersByQuestionId = new Map(system.answers.map((answer) => [answer.questionId, answer.response]));
   const latestAssessment = system.assessments[0] ?? null;
+  const isDemo = system.workspaceId === DEMO_WORKSPACE_ID;
   const previousAssessment = system.assessments[1] ?? null;
   const assessmentRecommendations = latestAssessment ? parseRecommendations(latestAssessment.recommendations) : [];
   const assessmentCitations = latestAssessment ? parseCitations(latestAssessment.citations) : [];
@@ -147,7 +150,7 @@ export default async function SystemDetailPage({ params }: PageProps) {
               ← Systems
             </Link>
             <p className="mt-3 text-[0.65rem] font-semibold uppercase tracking-wide text-slate-500">
-              Progress
+              Questionnaire
             </p>
             <p className="mt-1 font-display text-3xl text-ink-900">{progress}%</p>
             <p className="text-xs text-slate-500">
@@ -156,30 +159,10 @@ export default async function SystemDetailPage({ params }: PageProps) {
             <div className="mt-3 h-1.5 overflow-hidden rounded-full bg-slate-100">
               <div className="h-full rounded-full bg-signal-600" style={{ width: `${progress}%` }} />
             </div>
-          </div>
-
-          <nav className="panel-surface p-3">
-            <p className="px-1 text-[0.65rem] font-semibold uppercase tracking-wide text-slate-500">
-              Jump to
+            <p className="mt-2 text-[0.68rem] leading-relaxed text-slate-500">
+              Completion tracks answers only; readiness also depends on evidence and open gaps.
             </p>
-            <ul className="mt-2 grid gap-1 text-sm">
-              {[
-                { href: "#gaps", label: `Gaps (${system.gaps.length})` },
-                { href: "#assessment", label: "Assessment" },
-                { href: "#questionnaire", label: "Questionnaire" },
-                { href: "#evidence", label: `Evidence (${system.evidenceItems.length})` }
-              ].map((item) => (
-                <li key={item.href}>
-                  <a
-                    href={item.href}
-                    className="block rounded-xl px-3 py-2 text-slate-700 hover:bg-paper-50 hover:text-ink-900"
-                  >
-                    {item.label}
-                  </a>
-                </li>
-              ))}
-            </ul>
-          </nav>
+          </div>
 
           <nav className="panel-surface p-3">
             <p className="px-1 text-[0.65rem] font-semibold uppercase tracking-wide text-slate-500">
@@ -208,7 +191,7 @@ export default async function SystemDetailPage({ params }: PageProps) {
         </aside>
 
         <section className="grid gap-5">
-          <header className="panel-surface p-6">
+          <header id="overview" className="panel-surface scroll-mt-24 p-6">
             <div className="flex flex-wrap items-start justify-between gap-4">
               <div className="max-w-3xl">
                 <div className="flex flex-wrap items-center gap-2">
@@ -227,20 +210,16 @@ export default async function SystemDetailPage({ params }: PageProps) {
                   {system.owner} · {system.deploymentStatus} · {system.geography}
                 </p>
               </div>
-              <div className="flex flex-wrap gap-2">
-                <a
-                  href={`/systems/${system.id}/export`}
-                  className="inline-flex rounded-full bg-ink-900 px-4 py-2.5 text-sm font-medium text-white hover:bg-ink-800"
-                >
-                  Export pack
+              {latestAssessment ? (
+                <div className="flex flex-wrap gap-2">
+                  {!isDemo && <a href={`/systems/${system.id}/export`} className="inline-flex rounded-full bg-ink-900 px-4 py-2.5 text-sm font-medium text-white hover:bg-ink-800">Export pack</a>}
+                  <Link href={`/systems/${system.id}/assessment`} className="inline-flex rounded-full border border-slate-300 bg-white px-4 py-2.5 text-sm font-medium text-ink-900 hover:bg-paper-50">Assessment view</Link>
+                </div>
+              ) : (
+                <a href={progress < 100 ? "#questionnaire" : system.evidenceItems.length === 0 ? "#evidence" : "#assessment"} className="inline-flex rounded-full bg-signal-700 px-4 py-2.5 text-sm font-medium text-white hover:bg-signal-800">
+                  {progress < 100 ? "Continue questionnaire" : system.evidenceItems.length === 0 ? "Attach evidence" : "Generate assessment"}
                 </a>
-                <Link
-                  href={`/systems/${system.id}/assessment`}
-                  className="inline-flex rounded-full border border-slate-300 bg-white px-4 py-2.5 text-sm font-medium text-ink-900 hover:bg-paper-50"
-                >
-                  Shareable view
-                </Link>
-              </div>
+              )}
             </div>
             <div className="mt-5 grid gap-3 sm:grid-cols-3">
               <div className="rounded-2xl bg-paper-50 px-4 py-3">
@@ -259,6 +238,13 @@ export default async function SystemDetailPage({ params }: PageProps) {
               </div>
             </div>
           </header>
+
+          <WorkflowStepper
+            answered={answeredRequiredQuestionCount}
+            required={requiredQuestionCount}
+            evidenceCount={system.evidenceItems.length}
+            hasAssessment={Boolean(latestAssessment)}
+          />
 
           <section id="gaps" className="panel-surface scroll-mt-24 p-6">
             <h2 className="font-display text-2xl tracking-tight text-ink-900">Open gaps</h2>
@@ -283,6 +269,9 @@ export default async function SystemDetailPage({ params }: PageProps) {
                       )}
                     </div>
                     <p className="mt-3 text-sm leading-relaxed text-slate-800">{gap.message}</p>
+                    <a href="#evidence" className="mt-3 inline-flex rounded-full border border-amber-200 bg-white px-3 py-1.5 text-xs font-semibold text-amber-900 hover:bg-amber-50">
+                      Attach supporting evidence
+                    </a>
                   </li>
                 ))}
               </ul>
@@ -314,9 +303,15 @@ export default async function SystemDetailPage({ params }: PageProps) {
               )}
             </div>
 
-            <div className="mt-4 rounded-2xl border border-slate-200 bg-paper-50 p-4">
-              <AssessmentForm systemId={system.id} />
-            </div>
+            {!isDemo ? (
+              <div className="mt-4 rounded-2xl border border-slate-200 bg-paper-50 p-4">
+                <AssessmentForm systemId={system.id} />
+              </div>
+            ) : (
+              <p className="mt-4 rounded-2xl border border-signal-100 bg-signal-50 p-4 text-sm text-signal-900">
+                This curated walkthrough is read-only. Open your private workspace to run an assessment.
+              </p>
+            )}
 
             {latestAssessment ? (
               <div className="mt-5 grid gap-4">
@@ -540,16 +535,23 @@ export default async function SystemDetailPage({ params }: PageProps) {
                     </div>
                   </summary>
                   <div className="mt-4 grid gap-4">
-                    {section.questions.map((question) => (
-                      <QuestionAnswerForm
-                        key={question.id}
-                        systemId={system.id}
-                        questionId={question.id}
-                        prompt={question.prompt}
-                        required={question.required}
-                        defaultResponse={answersByQuestionId.get(question.id) ?? ""}
-                      />
-                    ))}
+                    {section.questions.map((question) =>
+                      isDemo ? (
+                        <div key={question.id} className="rounded-2xl border border-slate-200 bg-white p-4">
+                          <p className="text-sm font-medium text-slate-900">{question.prompt}</p>
+                          <p className="mt-2 text-sm leading-relaxed text-slate-600">{answersByQuestionId.get(question.id) || "Not answered in this walkthrough."}</p>
+                        </div>
+                      ) : (
+                        <QuestionAnswerForm
+                          key={question.id}
+                          systemId={system.id}
+                          questionId={question.id}
+                          prompt={question.prompt}
+                          required={question.required}
+                          defaultResponse={answersByQuestionId.get(question.id) ?? ""}
+                        />
+                      )
+                    )}
                   </div>
                 </details>
               ))}
@@ -616,7 +618,7 @@ export default async function SystemDetailPage({ params }: PageProps) {
                 })
               )}
             </div>
-            <details className="mt-4 rounded-xl border border-slate-200 bg-white p-3">
+            {!isDemo && <details className="mt-4 rounded-xl border border-slate-200 bg-white p-3">
               <summary className="cursor-pointer text-sm font-semibold text-ink-900">
                 Add evidence
               </summary>
@@ -627,7 +629,7 @@ export default async function SystemDetailPage({ params }: PageProps) {
                   sections={sections.map((section) => ({ id: section.id, title: section.title }))}
                 />
               </div>
-            </details>
+            </details>}
           </div>
         </aside>
       </main>
