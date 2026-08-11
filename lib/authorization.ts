@@ -1,5 +1,5 @@
 import { prisma } from "@/lib/prisma";
-import { getOrCreatePrimaryWorkspace, DEMO_WORKSPACE_ID } from "@/lib/workspace";
+import { getPrimaryWorkspace, DEMO_WORKSPACE_ID } from "@/lib/workspace";
 
 export class ResourceNotFoundError extends Error {
   constructor() {
@@ -9,7 +9,10 @@ export class ResourceNotFoundError extends Error {
 }
 
 export async function requireOwnedSystem(systemId: string) {
-  const workspace = await getOrCreatePrimaryWorkspace();
+  const workspace = await getPrimaryWorkspace();
+  if (!workspace) {
+    throw new ResourceNotFoundError();
+  }
   const system = await prisma.aiSystem.findFirst({
     where: { id: systemId, workspaceId: workspace.id },
     select: { id: true, workspaceId: true }
@@ -21,6 +24,6 @@ export async function requireOwnedSystem(systemId: string) {
 }
 
 export async function getReadableSystemWorkspaceIds() {
-  const workspace = await getOrCreatePrimaryWorkspace();
-  return [workspace.id, DEMO_WORKSPACE_ID];
+  const workspace = await getPrimaryWorkspace();
+  return workspace ? [workspace.id, DEMO_WORKSPACE_ID] : [DEMO_WORKSPACE_ID];
 }
