@@ -52,10 +52,10 @@ async function seedQuestionnaire() {
 
 async function seedDemoScenario() {
   const user = await prisma.user.upsert({
-    where: { email: "sample.owner@evidencepack.local" },
+    where: { email: "sample.owner@truecite.local" },
     update: { name: `${SAMPLE} Governance Owner` },
     create: {
-      email: "sample.owner@evidencepack.local",
+      email: "sample.owner@truecite.local",
       name: `${SAMPLE} Governance Owner`
     }
   });
@@ -63,12 +63,12 @@ async function seedDemoScenario() {
   const workspace = await prisma.workspace.upsert({
     where: { id: "sample-workspace-id" },
     update: {
-      name: `${SAMPLE} EvidencePack Workspace`,
+      name: `${SAMPLE} Truecite Workspace`,
       ownerId: user.id
     },
     create: {
       id: "sample-workspace-id",
-      name: `${SAMPLE} EvidencePack Workspace`,
+      name: `${SAMPLE} Truecite Workspace`,
       ownerId: user.id
     }
   });

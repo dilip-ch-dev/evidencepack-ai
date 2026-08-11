@@ -19,7 +19,7 @@ export async function GET() {
 
     return NextResponse.json({
       status: "ok",
-      service: "evidencepack-ai",
+      service: "truecite",
       versions: {
         scoring: CURRENT_SCORING_VERSION,
         corpus: CURRENT_CORPUS_VERSION
@@ -37,7 +37,7 @@ export async function GET() {
     return NextResponse.json(
       {
         status: "error",
-        service: "evidencepack-ai",
+        service: "truecite",
         message: error instanceof Error ? error.message : "Health check failed"
       },
       { status: 503 }

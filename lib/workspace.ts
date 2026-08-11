@@ -12,17 +12,17 @@ export async function getOrCreatePrimaryWorkspace() {
   }
 
   const owner = await prisma.user.upsert({
-    where: { email: "local.owner@evidencepack.local" },
+    where: { email: "local.owner@truecite.local" },
     update: { name: "Local Workspace Owner" },
     create: {
-      email: "local.owner@evidencepack.local",
+      email: "local.owner@truecite.local",
       name: "Local Workspace Owner"
     }
   });
 
   return prisma.workspace.create({
     data: {
-      name: "Local EvidencePack Workspace",
+      name: "Local Truecite Workspace",
       ownerId: owner.id
     }
   });

@@ -52,6 +52,10 @@
 
 ## Changelog
 
+### 2026-08-10
+
+- Rebranded audience-facing product name to **Truecite** (UI, docs, exports, health service id).
+
 ### 2026-07-30
 
 - UI / UX polish for portfolio demos:
